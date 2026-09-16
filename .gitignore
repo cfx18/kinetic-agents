@@ -1,0 +1,54 @@
+# Secrets and account/session material
+.env
+.env.*
+!.env.example
+*.env
+auth.json
+hosts.yml
+*.key
+*.pem
+*.p12
+*.pfx
+.codex*/
+.claude*/
+.kimi*/
+
+# Host-only deployment inputs
+/local/*
+!/local/README.md
+auth-host/
+cli-home/
+.ssh/
+credentials.json
+.git-credentials
+
+# Full-run bundles remain local; this edition distributes results only.
+/downloads/
+/restored-runs/
+/release-assets/
+/archive/*.tar.zst
+
+# Do not accidentally publish raw I/O from future executions.
+/runs/**/transcript.md
+/runs/**/transcript.jsonl
+/runs/**/*.log
+/runs/**/*.sqlite*
+/runs/**/native/
+/runs/**/agents/
+/runs/**/work/
+/runs/**/remote_jobs/
+/runs/**/review/
+/runs/**/recovery/
+
+# Generated packages and tests
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv*/
+*.egg-info/
+/build/
+/dist/
+.coverage
+htmlcov/
+test-results*.xml
+.DS_Store

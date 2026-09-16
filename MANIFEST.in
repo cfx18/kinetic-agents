@@ -1,0 +1,21 @@
+include README.md LICENSE CONTRIBUTING.md SECURITY.md THIRD_PARTY_NOTICES.md run.py
+include RESEARCH_ARCHIVE.md
+include ARCHIVE_SCOPE.md
+include .env.example network.env.example
+recursive-include configs *.yaml
+include tasks/usc_ii/TASK.md tasks/usc_ii_expert_v2/TASK.md
+include docs/ARCHITECTURE.md docs/CONFIGURATION.md docs/RELEASE.md docs/RUBRIC.md
+include docs/INFRASTRUCTURE_RECOVERY.md docs/TASK_EXPERT_GUIDANCE_V2_DRAFT.md
+recursive-include tests *.py
+recursive-include src *.py *.txt
+prune local
+prune runs
+prune scripts
+prune data
+prune research
+prune archive
+prune results
+include scripts/restore_release.py
+include scripts/verify_results_archive.py
+exclude tasks/usc_ii/parent.yaml tasks/usc_ii_expert_v2/parent.yaml
+global-exclude *.py[cod] __pycache__ .env .env.network auth.json *.pem *.key *.sqlite *.log

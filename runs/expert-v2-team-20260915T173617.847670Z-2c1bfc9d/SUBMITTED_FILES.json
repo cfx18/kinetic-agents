@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_58sp_420rxn.yaml",
+    "sha256": "a07cadbbccb696b12e6281ac52a06e2336e0e33260b494b7ed09dbdca92bd444",
+    "distributed_path": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/final_artifacts/a07cadbbccb696b12e6281ac52a06e2336e0e33260b494b7ed09dbdca92bd444"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_53sp_374rxn.yaml",
+    "sha256": "2051a6c35d16086d6a621506f66e3005be0e0a7c7326d9fe381149dd4f7ff2fa",
+    "distributed_path": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/final_artifacts/2051a6c35d16086d6a621506f66e3005be0e0a7c7326d9fe381149dd4f7ff2fa"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_49sp_330rxn.yaml",
+    "sha256": "468c6aedb369853b6a9b65c96bab1eccf9ecb561d459c038e57c466cafbe813e",
+    "distributed_path": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/final_artifacts/468c6aedb369853b6a9b65c96bab1eccf9ecb561d459c038e57c466cafbe813e"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "fd5c6662b9489cf8b22753840a2d7e9b8ad9df1690c7712cfd953db15b400567",
+    "distributed_path": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/final_artifacts/fd5c6662b9489cf8b22753840a2d7e9b8ad9df1690c7712cfd953db15b400567"
+  }
+]

@@ -1,0 +1,28 @@
+{
+  "run_id": "evaluator-compatibility-fix-20260915",
+  "task_variant": "repair_evidence",
+  "profile": null,
+  "harness": null,
+  "model": null,
+  "lifecycle_metadata": {
+    "status": null,
+    "phase": null,
+    "captured_at": null
+  },
+  "endpoint_status_metadata": null,
+  "owner_finished_marker_captured": false,
+  "snapshot_label": "repair_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:07:47.826127+00:00",
+  "capture_end_utc": "2026-09-16T15:07:48.189788+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 0,
+  "source_file_bytes_retained": 0,
+  "source_full_snapshot_files_local_only": 94,
+  "arm_directory": null,
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

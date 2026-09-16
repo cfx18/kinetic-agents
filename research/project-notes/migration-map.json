@@ -1,0 +1,331 @@
+[
+  {
+    "source": "research_runtime/run_cli.py",
+    "destination": "src/kinetic_agents/cli.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/run_config.py",
+    "destination": "src/kinetic_agents/config.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/subscription_run.py",
+    "destination": "src/kinetic_agents/runner.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/release.py",
+    "destination": "src/kinetic_agents/release.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/contracts.py",
+    "destination": "src/kinetic_agents/core/contracts.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/runtime.py",
+    "destination": "src/kinetic_agents/core/runtime.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/policy.py",
+    "destination": "src/kinetic_agents/core/policy.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/state.py",
+    "destination": "src/kinetic_agents/core/state.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/trajectory.py",
+    "destination": "src/kinetic_agents/core/trajectory.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/task_contract.py",
+    "destination": "src/kinetic_agents/core/task_contract.py",
+    "extracted_symbols": [
+      "read_original",
+      "validate_reference"
+    ]
+  },
+  {
+    "source": "research_runtime/baseline.py",
+    "destination": "src/kinetic_agents/native/baseline.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/openworld_profile.py",
+    "destination": "src/kinetic_agents/native/public_profile.py",
+    "extracted_symbols": [
+      "NativeOpenWorldConfig"
+    ]
+  },
+  {
+    "source": "research_runtime/team_profile.py",
+    "destination": "src/kinetic_agents/native/profiles.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/subscription_native.py",
+    "destination": "src/kinetic_agents/native/subscription.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/subscription_workers.py",
+    "destination": "src/kinetic_agents/native/workers.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/subscription_team_state.py",
+    "destination": "src/kinetic_agents/native/usage.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_native.py",
+    "destination": "src/kinetic_agents/native/team_client.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_science_tools.py",
+    "destination": "src/kinetic_agents/native/scoped_tools.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/slurm_transport.py",
+    "destination": "src/kinetic_agents/execution/slurm.py",
+    "extracted_symbols": [
+      "BASE",
+      "cancel",
+      "checked",
+      "remote_path",
+      "scheduler",
+      "script",
+      "ssh",
+      "transfer"
+    ]
+  },
+  {
+    "source": "research_runtime/team_remote_jobs.py",
+    "destination": "src/kinetic_agents/execution/jobs.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_pair_run.py",
+    "destination": "src/kinetic_agents/execution/finalize.py",
+    "extracted_symbols": [
+      "finalize",
+      "postrun_review"
+    ]
+  },
+  {
+    "source": "research_runtime/team_pair_environment.py",
+    "destination": "src/kinetic_agents/research/environment.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_pair_skills.py",
+    "destination": "src/kinetic_agents/research/skills.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_runtime.py",
+    "destination": "src/kinetic_agents/research/policy.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/openworld_run.py",
+    "destination": "src/kinetic_agents/research/tool_schemas.py",
+    "extracted_symbols": [
+      "SPECS"
+    ]
+  },
+  {
+    "source": "research_runtime/live_transcript.py",
+    "destination": "src/kinetic_agents/observability/transcript.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/live_rollout.py",
+    "destination": "src/kinetic_agents/observability/rollout.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/experiment_review.py",
+    "destination": "src/kinetic_agents/observability/review.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/expert_review.py",
+    "destination": "src/kinetic_agents/observability/expert.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/step_review.py",
+    "destination": "src/kinetic_agents/observability/steps.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/review_tools.py",
+    "destination": "src/kinetic_agents/observability/notebook_tools.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/run_report.py",
+    "destination": "src/kinetic_agents/observability/report.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team_pair_endpoint.py",
+    "destination": "src/kinetic_agents/evaluation/submission.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/endpoint_service.py",
+    "destination": "src/kinetic_agents/evaluation/service.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/openworld_endpoint.py",
+    "destination": "src/kinetic_agents/evaluation/scoring.py",
+    "extracted_symbols": [
+      "fingerprint",
+      "panel_score",
+      "summarize",
+      "validate_pool"
+    ]
+  },
+  {
+    "source": "research_runtime/openworld_artifacts.py",
+    "destination": "src/kinetic_agents/evaluation/artifacts.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/store.py",
+    "destination": "src/kinetic_agents/team/store.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/router.py",
+    "destination": "src/kinetic_agents/team/router.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/__init__.py",
+    "destination": "src/kinetic_agents/team/__init__.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/artifacts.py",
+    "destination": "src/kinetic_agents/team/artifacts.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/service.py",
+    "destination": "src/kinetic_agents/team/service.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/evolution.py",
+    "destination": "src/kinetic_agents/team/evolution.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/tools.py",
+    "destination": "src/kinetic_agents/team/tools.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "research_runtime/team/contracts.py",
+    "destination": "src/kinetic_agents/team/contracts.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/account_probe.py",
+    "destination": "src/kinetic_agents/native/rpc.py",
+    "extracted_symbols": [
+      "MetadataClient"
+    ]
+  },
+  {
+    "source": "harness_pair/dynamic_transport.py",
+    "destination": "src/kinetic_agents/native/dynamic.py",
+    "extracted_symbols": [
+      "DynamicClient"
+    ]
+  },
+  {
+    "source": "harness_pair/deepseek_native_client.py",
+    "destination": "src/kinetic_agents/native/client.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/dispatch_receiver.py",
+    "destination": "src/kinetic_agents/native/dispatch.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/native_permissions.py",
+    "destination": "src/kinetic_agents/native/permissions.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/pipe_receiver_v2.py",
+    "destination": "src/kinetic_agents/native/pipes.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/ndjson_framing_v2.py",
+    "destination": "src/kinetic_agents/native/framing.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/protocol.py",
+    "destination": "src/kinetic_agents/core/encoding.py",
+    "extracted_symbols": [
+      "MODEL",
+      "encoded",
+      "sha"
+    ]
+  },
+  {
+    "source": "harness_pair/durable_runtime.py",
+    "destination": "src/kinetic_agents/core/store.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/cpu_execution.py",
+    "destination": "src/kinetic_agents/execution/cpu.py",
+    "extracted_symbols": null
+  },
+  {
+    "source": "harness_pair/science_workspace.py",
+    "destination": "src/kinetic_agents/evaluation/pins.py",
+    "extracted_symbols": [
+      "PINNED_MODULES"
+    ]
+  },
+  {
+    "source": "research_runtime/recovery_probe.py",
+    "destination": "src/kinetic_agents/core/paths.py",
+    "extracted_symbols": [
+      "file_sha",
+      "plain"
+    ]
+  },
+  {
+    "source": "research_runtime/team_remote_qualification.py",
+    "destination": "src/kinetic_agents/execution/deployment.py",
+    "extracted_symbols": [
+      "REMOTE"
+    ]
+  },
+  {
+    "source": "mechrl/harness/storage.py",
+    "destination": "src/kinetic_agents/core/storage.py",
+    "extracted_symbols": null
+  }
+]

@@ -1,0 +1,90 @@
+{
+  "schema": "kinetic-guidance-comparison.v1",
+  "registered_at": "2026-09-16T01:06:18Z",
+  "status_at_registration": "ALL_FOUR_ACTIVE",
+  "model": "kimi-k3",
+  "reasoning_effort": "max",
+  "harness": "kimi_code_node",
+  "harness_version": "0.28.1",
+  "harness_entry_sha256": "46a0095fa08385027e2e2d02d3c3ee274ecc2094f136dc745910bd72273f7763",
+  "source_release_sha256": "e7617a25f720c95f6fbbe7415c3d343c691d89e7c07c2c4f8251df0dc0702c77",
+  "parent_sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+  "per_arm_resources": {
+    "search_cpu_hours": 512,
+    "wall_hours": 24,
+    "independent_evaluation_cpu_hours": 64,
+    "model_usd_cap": null,
+    "model_call_cap": null
+  },
+  "capacity": {
+    "user_reported_account_concurrency": 50,
+    "api_verified_account_limit": false,
+    "project_max_agents": 8,
+    "other_project_usage": "unknown",
+    "observed_http_429_at_registration": 0
+  },
+  "arms": [
+    {
+      "task": "original",
+      "team": "solo",
+      "max_agents": 1,
+      "task_file": "tasks/usc_ii/TASK.md",
+      "task_sha256": "85715d6567a53b9a67773487163013b079d9ccb2e530a258bda9018e861f0836",
+      "config": "configs/baseline-v1-kimi-solo.yaml",
+      "run": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120",
+      "arm_directory": "solo-max",
+      "supervisor_pid": 1498029
+    },
+    {
+      "task": "original",
+      "team": "team",
+      "max_agents": 3,
+      "task_file": "tasks/usc_ii/TASK.md",
+      "task_sha256": "85715d6567a53b9a67773487163013b079d9ccb2e530a258bda9018e861f0836",
+      "config": "configs/baseline-v1-kimi-team.yaml",
+      "run": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164",
+      "arm_directory": "team-max",
+      "supervisor_pid": 1498581
+    },
+    {
+      "task": "expert_v2",
+      "team": "solo",
+      "max_agents": 1,
+      "task_file": "tasks/usc_ii_expert_v2/TASK.md",
+      "task_sha256": "dee27db8a8c1332d8e704fc55697eb52eee8d88acac4bc9c4ca9acd33284a2a5",
+      "config": "configs/expert-v2-kimi-solo.yaml",
+      "run": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970",
+      "arm_directory": "solo-max",
+      "supervisor_pid": 1479489
+    },
+    {
+      "task": "expert_v2",
+      "team": "team",
+      "max_agents": 3,
+      "task_file": "tasks/usc_ii_expert_v2/TASK.md",
+      "task_sha256": "dee27db8a8c1332d8e704fc55697eb52eee8d88acac4bc9c4ca9acd33284a2a5",
+      "config": "configs/expert-v2-kimi-team.yaml",
+      "run": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267",
+      "arm_directory": "team-max",
+      "supervisor_pid": 1545502,
+      "original_supervisor_pid": 1479785,
+      "recovery": {
+        "revision": "slurm-race-v1",
+        "resumed_at": "2026-09-16T02:32:59Z",
+        "same_native_session": true,
+        "original_deadline_preserved": true,
+        "original_budget_preserved": true,
+        "source_release_sha256": "e59542767979b0799846962141620d51b2ae74d51c7d540d19ad6d757b23df79",
+        "receipt": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/recovery/slurm-race-v1/receipt.json"
+      }
+    }
+  ],
+  "interpretation_limits": [
+    "Expert V2 adds the entire expert guidance section, not only three website links.",
+    "One independent trajectory per cell; up to three final mechanisms are not statistical replicates.",
+    "Original-task arms started about 43 minutes after expert-task arms; shared API and Slurm load may affect elapsed time.",
+    "No existing candidates or memory are supplied to new arms; final 610 evaluation is separate from search.",
+    "Historically exposed evaluation pool, not a newly pristine blind test; no RSI claim from this design alone.",
+    "Expert Team received an explicit infrastructure-repaired continuation after a fatal submission-state race; do not describe all full trajectories as sharing one unchanged harness release."
+  ]
+}

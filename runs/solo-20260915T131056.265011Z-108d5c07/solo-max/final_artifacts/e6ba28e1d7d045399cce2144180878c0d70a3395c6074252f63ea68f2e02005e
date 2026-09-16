@@ -1,0 +1,111 @@
+# USC-II reduction: results and limits
+
+## Result
+
+Three useful reductions are submitted. The smallest has **81 species and 464 reactions** (27.0% fewer species and 40.8% fewer reactions), with maximum parent-reference errors of **13.84% for ignition delay and 8.21% for flame speed** across 225 conditions. Choose the 101-species/542-reaction conservative model when the stricter 10% ignition / 5% flame fidelity tier is needed; its observed maxima are 5.81% and 4.19%. The 87-species/513-reaction model supplies an intermediate trade-off.
+
+All submitted mechanisms were designed in this run from the supplied **111-species, 784-reaction** parent. They retain complete reactions and original rate, thermodynamic and transport parameters. No existing reduced mechanism was downloaded or substituted.
+
+Final parent comparisons cover **157 ignition cases and 68 freely propagating flames** across 15 fuel compositions and four additional blends. The 225-case pool contains 60 initial training cases, 127 original validation cases and 38 fresh confirmation cases. The original validation feedback was used to repair the smaller models; those 127 cases are not independent confirmation for the revisions. The 38 fresh cases were frozen before evaluating repairs. All final flames use finer 0.03/0.06 settings. The actual parent-fidelity cases span initial ignition temperatures 1000–1622.15 K, 1–30 atm and equivalence ratios 0.5701–1.5839; flame inlets span 300–450 K, 1–5 atm and equivalence ratios 0.65–1.4. These are sampled ranges, not a full Cartesian grid. Twelve separate toluene shock-tube observations provide an external check.
+
+| Submitted mechanism | Species (removed) | Reactions (removed) | Ignition mean / maximum error | Flame-speed mean / maximum error | Criteria on tested cases |
+|---|---:|---:|---:|---:|---|
+| [usc2_conservative](mechanisms/usc2_conservative.yaml) | 101 (9.0%) | 542 (30.9%) | 0.82% / 5.81% | 1.15% / 4.19% | 10% ignition / 5% flame |
+| [usc2_balanced_repaired](mechanisms/usc2_balanced_repaired.yaml) | 87 (21.6%) | 513 (34.6%) | 1.40% / 12.05% | 1.60% / 5.53% | 20% ignition / 10% flame |
+| [usc2_compact_repaired](mechanisms/usc2_compact_repaired.yaml) | 81 (27.0%) | 464 (40.8%) | 2.11% / 13.84% | 2.07% / 8.21% | 20% ignition / 10% flame |
+
+**Errors in this table are relative to parent predictions, not experimental errors.** The thresholds were chosen before screening: maximum 10%/5% for ignition/flame fidelity, with an exploratory 20%/10% tier. Passing a finite case set does not establish accuracy throughout a continuous operating envelope.
+
+![Accuracy and complexity](figures/tradeoff.png)
+
+## Original validation and worst discrepancies
+
+| Mechanism | Original validation ignition: mean / max | Original validation flame: mean / max | Worst ignition case overall | Worst flame case overall |
+|---|---:|---:|---|---|
+| usc2_conservative | 0.85% / 5.81% | 1.18% / 4.19% | `ignition_test_toluene_03` | `flame_test_butadiene_02` |
+| usc2_balanced_repaired | 1.47% / 12.05% | 1.74% / 5.53% | `ignition_test_butadiene_03` | `flame_test_allene_02` |
+| usc2_compact_repaired | 2.19% / 13.84% | 2.03% / 8.21% | `ignition_test_butadiene_03` | `flame_test_butadiene_02` |
+
+### Fresh confirmation after repair
+
+| Mechanism | 30 new ignition cases: mean / max | 8 new flames: mean / max |
+|---|---:|---:|
+| usc2_conservative | 0.74% / 3.66% | 1.13% / 2.94% |
+| usc2_balanced_repaired | 1.10% / 4.25% | 1.54% / 2.59% |
+| usc2_compact_repaired | 1.89% / 8.85% | 1.87% / 3.31% |
+
+The exact temperatures, pressures, compositions, equivalence ratios, predictions and errors are in [the complete comparison CSV](results/final_comparison.csv). The [JSON summary](results/final_comparison.json) also gives errors by fuel, percentiles, secondary +400 K ignition delays and burned-temperature differences. No unsuccessful case is silently excluded from the reported valid/total counts.
+
+![Parent and reduced predictions](figures/parity.png)
+
+### Further checks
+
+- **usc2_conservative:** 157/157 comparable ignition cases and 68/68 comparable flames; maximum secondary ignition error 5.91%; maximum burned-temperature difference 0.90 K. On six representative cases each, tightening ignition tolerances changes delay by at most 1.12e-06%; refining flames from slope 0.03 to 0.015 changes speed by at most 0.87% and changes reduced-versus-parent error by at most 0.10 percentage points.
+- **usc2_balanced_repaired:** 157/157 comparable ignition cases and 68/68 comparable flames; maximum secondary ignition error 12.17%; maximum burned-temperature difference 0.95 K. On six representative cases each, tightening ignition tolerances changes delay by at most 1.07e-05%; refining flames from slope 0.03 to 0.015 changes speed by at most 0.87% and changes reduced-versus-parent error by at most 0.36 percentage points.
+- **usc2_compact_repaired:** 157/157 comparable ignition cases and 68/68 comparable flames; maximum secondary ignition error 13.96%; maximum burned-temperature difference 1.29 K. On six representative cases each, tightening ignition tolerances changes delay by at most 5.55e-06%; refining flames from slope 0.03 to 0.015 changes speed by at most 0.88% and changes reduced-versus-parent error by at most 0.24 percentage points.
+
+The first parent grid study found up to **2.615%** change between slope 0.06 and 0.015. This prompted refinement of **every final parent and reduced flame** to slope 0.03; further representative refinement changed parent speeds by at most about 0.86%. These are numerical sensitivity checks, not independently certified error bounds. See [numerical results](results/numerical_comparison.json).
+
+## External experimental comparison
+
+Burcat, Snyder and Brabbs, **NASA TM-87312 (1986)**, Table III mixture A, report 12 toluene/O2/Ar shocks at 1358–1758 K and 2.33–3.61 atm. The mole fractions are 0.01495 toluene, 0.1345 oxygen and 0.85055 argon. Their values were checked against the [original public report](https://ntrs.nasa.gov/api/citations/19860015959/downloads/19860015959.pdf), which is also [saved locally](sources/burcat_original.pdf).
+
+The primary report defines ignition as the **beginning of pressure rise**. The public ChemKED transcription instead labels it as maximum dP/dt. Accordingly, we report both the simulated pressure-derivative peak and a stated **onset estimate**: the initial-pressure intercept of the tangent at maximum dP/dt. This estimate is not an exact model of the experimental onset selection. The transcription’s 0.1 microsecond value was not treated as a complete experimental uncertainty; the original text associates that timing precision with shock-speed measurement.
+
+| Model | Mean absolute onset-estimate error | Maximum onset-estimate error | Mean / maximum pressure-peak error |
+|---|---:|---:|---:|
+| Parent | 36.14% | 56.37% | 38.52% / 68.61% |
+| usc2_conservative | 37.13% | 57.21% | 39.51% / 69.43% |
+| usc2_balanced_repaired | 30.03% | 48.54% | 32.48% / 60.99% |
+| usc2_compact_repaired | 28.33% | 44.06% | 31.01% / 57.74% |
+
+The parent overpredicts all 12 observed delays using the onset estimate. Its systematic discrepancy is inherited to varying degrees by the reduced mechanisms. Reduction fidelity therefore **does not imply experimental accuracy at the 5–10% level**. These observations were not used to fit rates or select species. There is **no direct flame-speed experimental validation** in this run; the flame comparisons are parent predictions of an experimentally measurable macroscopic observable.
+
+![External ignition comparison](figures/external_ignition.png)
+
+## Search history and rejected attempts
+
+1. A DRGEP graph score from parent ignition and flame states was implemented using public method equations. An initial unfiltered score was contaminated by numerical trace carbon species in a hydrogen flame. Filtering impossible inlet elements, tiny fluxes and inactive states corrected that ranking; both versions are preserved.
+2. A species-only graph threshold sweep reached 93 species/691 reactions at 9.66% ignition and 2.36% flame training error. A 75/479 subset deteriorated to 120.69% ignition and 30.40% flame error.
+3. Restoring HCCOH and testing 63 individual species deletions over all 45 training ignitions identified safer combined deletions. The 84/630 joint subset retained 7.47% ignition and 3.42% flame training errors.
+4. Weak-reaction deletion and combined species/reaction trials improved the trade-off. The 80/415 candidate illustrates non-additive failure: ignition remained below 20% in training while flame error rose to 41.66%; it was rejected.
+5. Four candidates fixed from training were evaluated on 187 conditions. The 101/542 candidate passed 10%/5%; three smaller candidates exceeded at least one 20%/10% limit. Their unchanged results remain in `results/final_comparison_v1.json`.
+6. Post-validation repair tests showed that restoring phenol (C6H5OH) reduced the problematic 1000 K/20 atm benzene error from about +21% to below 1%; restoring C5H5OH alone did not. The compact revision restores phenol; the balanced revision also restores CH and cC3H4 and lowers the reaction cutoff to 0.02. These choices explicitly used the original validation feedback.
+7. The revisions were frozen, then evaluated on all prior cases and 38 fresh confirmation cases. Their final measured errors are reported above. This is exploratory development and validation, not independent certification.
+
+Detailed search evidence: [species sweep](results/species_comparison.json), [single-deletion ranking](results/sensitivity_ranking.json), [joint screening](results/joint_comparison.json), [combined screening](results/combo_comparison.json). The finite search is neither a proof of a minimum network nor a global optimization.
+
+## Conservation, thermodynamics and limitations
+
+- Every retained reaction has **exact elemental balance**. Retained NASA coefficients and transport parameters match the parent. Forward rate constants and equilibrium constants match corresponding parent reactions within floating-point tolerance over 36 checks spanning 300–4000 K and 0.1–30 atm. Heat capacities remained positive at the sampled temperatures. Final details are in [the audit](results/final_audit.json).
+- The original mechanism already has discontinuous NASA polynomial joins for five species; some remain in the subsets. Retained source data were not repaired or refitted. Some source fits have nominal upper limits of 2000, 2500 or 3000 K, whereas parent product temperatures reach about 3755 K. The computations therefore include source-thermochemistry extrapolation. Algebraic consistency and positive sampled heat capacity do not establish accuracy of those extrapolations.
+- The validated conditions are high-temperature, idealized gas combustion. Low-temperature oxidation, extinction limits, strained or turbulent flames, soot, emissions chemistry, engine compression histories and heat losses were not validated. Nitrogen and argon serve as bath species; this is not a NOx mechanism.
+- Mixture-averaged transport without Soret is common to parent and reduced flame predictions. Hydrogen’s absolute experimental flame speeds can depend on transport assumptions not assessed here.
+- Error claims apply to the listed cases and numerical settings. The largest observed errors, diagnostic ambiguity in the external experiment, and inherited thermochemistry limits constrain how these mechanisms should be used.
+
+## Reproduction and retained evidence
+
+The detailed model definitions, formulas, filtering rules, cases, tolerances and source links are in [METHODS.md](METHODS.md). All scripts are in `scripts/`; all input JSON, supplied mechanism, candidate recipes and original reaction-index maps are retained. The parent SHA-256 is `eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee`.
+
+A local reproduction can use the saved wheels (Python 3.12, Linux x86-64):
+
+```sh
+python -m venv repro-venv
+repro-venv/bin/pip install --no-index --find-links wheels cantera scipy
+REDUCTION_WORKERS=2 repro-venv/bin/python scripts/workflow.py inputs/usc2_compact_repaired_ignition_config.json
+REDUCTION_WORKERS=2 repro-venv/bin/python scripts/workflow.py inputs/usc2_compact_repaired_flame_config.json
+```
+
+The runner skips existing per-case JSON files. For a fresh run, set a **new `outdir`** in a copied configuration and change/remove its archive paths, rather than reusing cached outputs. Equivalent configurations exist for the balanced revision. The original `inputs/final_validation_config.json` records four pre-repair candidates; `results/submission.json` identifies the actual submission. The new confirmation conditions are in `inputs/confirmation.json`. Final parent flames can be regenerated with `inputs/parent_fine_config.json`; tight numerical checks use the corresponding numerics configurations. Plot/report dependencies are in `wheels-report/`.
+
+The [profile index](results/profile_index.json) locates all submitted-case trajectories. Repaired-model raw archives are split by model and ignition/flame task (`results/raw_usc2_*_repaired_*.tar.gz`). Conservative profiles combine the returned original parts, a separate missing-profile recovery job and the confirmation archive. Parent and numerical profiles, source records and hashes are also retained. The original 796-case run returned only two of eight requested trajectory parts, but its scalar summary was complete. The first species-screen trajectory archive was also absent; its 480 raw scalar rows and log were recovered. Missing original archives are not claimed as saved; submitted-case coverage is checked in the profile index. The initial remote pip installation failed before chemistry due to temporary storage exhaustion; its log is saved, and later jobs unpacked pinned offline wheels directly.
+
+### Indicative integration cost
+
+Five ignition cases were timed in one local process, with one warm-up and three measured repetitions, rotating mechanism order. The metric is process CPU time for the same integration/trajectory-sampling function; mechanism loading and disk output are excluded. This is an indicative local benchmark, not a guarantee for other problems.
+
+- usc2_conservative: geometric-mean speed ratio 1.34×; per-case median ratios 1.25–1.46× relative to parent.
+- usc2_balanced_repaired: geometric-mean speed ratio 1.58×; per-case median ratios 1.37–1.69× relative to parent.
+- usc2_compact_repaired: geometric-mean speed ratio 1.82×; per-case median ratios 1.67–1.93× relative to parent.
+
+[Raw CPU timing records](results/benchmark.json).

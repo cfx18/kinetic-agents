@@ -1,0 +1,37 @@
+{
+  "run_id": "team-20260915T131059.107037Z-e89a0b43",
+  "task_variant": "baseline-v1",
+  "profile": "team",
+  "harness": {
+    "name": "codex",
+    "executable": "codex"
+  },
+  "model": {
+    "name": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "max_agents": 3,
+    "researcher_model": "gpt-5.5",
+    "researcher_effort": "high"
+  },
+  "lifecycle_metadata": {
+    "status": "COMPLETED",
+    "phase": "postrun_finished",
+    "captured_at": 1789481931.7139852
+  },
+  "endpoint_status_metadata": "COMPLETE",
+  "owner_finished_marker_captured": true,
+  "snapshot_label": "ended_run_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:42:49.681445+00:00",
+  "capture_end_utc": "2026-09-16T15:44:42.393064+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 57,
+  "source_file_bytes_retained": 11487039,
+  "source_full_snapshot_files_local_only": 4558,
+  "arm_directory": "team-max",
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

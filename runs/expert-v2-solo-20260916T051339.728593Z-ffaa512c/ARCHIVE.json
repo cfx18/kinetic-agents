@@ -1,0 +1,35 @@
+{
+  "run_id": "expert-v2-solo-20260916T051339.728593Z-ffaa512c",
+  "task_variant": "expert-v2",
+  "profile": "solo",
+  "harness": {
+    "name": "codex",
+    "executable": "codex"
+  },
+  "model": {
+    "name": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "max_agents": 1
+  },
+  "lifecycle_metadata": {
+    "status": "CANCELLED",
+    "phase": "postrun_finished",
+    "captured_at": 1789535803.770735
+  },
+  "endpoint_status_metadata": null,
+  "owner_finished_marker_captured": true,
+  "snapshot_label": "cancelled_run_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:29:26.164377+00:00",
+  "capture_end_utc": "2026-09-16T15:43:26.086825+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 11,
+  "source_file_bytes_retained": 13240,
+  "source_full_snapshot_files_local_only": 173,
+  "arm_directory": "solo-max",
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

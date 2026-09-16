@@ -1,0 +1,16 @@
+base: common.yaml
+profile: solo
+output_prefix: codex-api-solo
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: api
+  protocol: responses
+  env_file: ../.env
+  base_url_env: CODEX_API_BASE_URL
+  api_key_env: CODEX_API_KEY
+model:
+  name: gpt-6-astra
+  reasoning_effort: xhigh
+  max_agents: 1

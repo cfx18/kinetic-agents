@@ -1,0 +1,249 @@
+# Reduction of USC Mech II: methodology, validation and accuracy/complexity trade-off
+
+**Run:** autonomous kinetic mechanism reduction, 2026-09-16 (single day, resource-limited).
+**Parent mechanism:** USC Mech II (Wang et al., 2007), 111 species / 784 reactions,
+H2/CO/C1–C4 hydrocarbon oxidation, supplied as `mechs/parent.yaml` (Cantera YAML
+converted from the USC CTI file). All reduced mechanisms below are derived from
+this file by *removing whole species and reactions only* — no rate, thermo or
+transport parameter was refitted. Elemental conservation is therefore inherited
+exactly (every reaction verified element-balanced at build time), and the
+parent's NASA-polynomial fits (including its few documented mid-T discontinuities)
+are preserved verbatim. Toolchain: Cantera 3.2.0 + custom Python workflow (`src/`),
+local 2-core workstation + 64-core remote batch nodes.
+
+---
+
+## 1. Deliverables (all in `mechs/`)
+
+| file | species | reactions | intended scope |
+|---|---|---|---|
+| `usc2_lite.yaml` | 66 (−41 %) | 438 (−44 %) | H2, CO, CH4, CH3OH, C2H2, C2H4, C2H6, C3H6, C3H8, C4H10, iC4H10, C6H5CH3; C6H6 retained but degraded (§6) |
+| `usc2_xs.yaml` | 58 (−48 %) | 361 (−54 %) | same list; larger corner errors (C3H6, C6H6) |
+| `usc2_xsc4.yaml` | 48 (−57 %) | 307 (−61 %) | C0–C4 fuels only (no aromatics) |
+| (reference) `parent.yaml` | 111 | 784 | full USC Mech II |
+
+A fourth candidate, 66 sp / 165 rxn, was produced and **rejected** on validation
+(§3.3); a 57-species greedy point was produced but not delivered (redundant with
+`usc2_xs`, §4).
+
+## 2. Validation strategy
+
+Reference = the **parent mechanism's own predictions** (reduced-vs-parent error),
+supplemented by a small set of **literature experimental values** (§7 — external
+data, not used for fitting).
+
+Two experimentally measurable macroscopic observables:
+
+* **Ignition delay time (IDT)** — adiabatic constant-volume reactor, air
+  (O2:N2 = 1:3.76), IDT = time of max dT/dt.
+  - primary matrix, 6 fuels (H2, CH4, C2H4, C2H6, C3H8, C4H10):
+    phi ∈ {0.5, 1.0, 1.5} × P ∈ {1, 10} atm × 6 T points (950–1850 K, per-fuel
+    grids) = **216 cases**; all ignite in the parent.
+  - extended matrix, 7 fuels (CO, CH3OH, C2H2, C3H6, iC4H10, C6H6, C6H5CH3):
+    same grid = **252 cases** (3 dry-CO low-T cases do not ignite in 2 s in the
+    parent and are excluded from error statistics on both sides).
+* **Laminar flame speed SL** — freely propagating 1-D premixed flame,
+  mixture-averaged transport, Tu = 300 K:
+  - primary: 6 fuels × 6 phi (0.6–1.6; H2 0.6–2.6), 1 atm = **36 flames**;
+  - extended: CH3OH, C3H6, C2H2 = **17 flames**;
+  - elevated pressure: CH4, C2H4 at 5 atm = **12 flames**. Total **65 flames**.
+  - Grid sensitivity: slope 0.08→0.06 / curve 0.15→0.12 changes CH4 SL by
+    <0.5 %; identical solver settings used for parent and reduced mechanisms, so
+    residual grid error cancels in the comparison.
+
+Design tolerances (reduced vs parent): IDT within ~25 %, SL within ~5 % /
+~2 cm/s for `usc2_lite`; looser for the aggressive variants. These are of the
+same order as experimental scatter for these observables (§7).
+
+## 3. Reduction method
+
+### 3.1 Why textbook DRGEP did not work here (negative result 1)
+
+A standard DRGEP implementation (Pepiot-Desjardins & Pitsch 2008: r_AB =
+|Σ_i ν_Ai ω_i δ_Bi| / max(P_A, C_A); edge = max over sampled states; max-product
+path search from 13 fuel targets + core small species) **saturates on USC-II**:
+>97 % of species reached path value V > 0.9, so every threshold kept ≈110/111
+species. USC-II is already compact per fuel class, and with 13 fuels as targets
+every species sits within a few saturated links of a target. Two concrete flaws
+were diagnosed and fixed:
+
+1. **Sampling bias** — states taken uniformly in T miss the long induction
+   period that sets IDT. Fix: geometric time grid (1 µs → ignition, ×1.35, ≤60
+   states/case). Demonstrated by a counterexample: a 72-species skeleton built
+   with T-uniform sampling + global-median aggregation deleted the oxirane
+   (CH2OCH2) network and broke C2H4 ignition at 1000 K by a factor 8; flux
+   analysis showed C2H4+HO2→CH2OCH2+OH carrying induction-period flux
+   comparable to the main channels.
+2. **Aggregation bias** — `max` over states lets single-reaction-dominated
+   states saturate edges to 1; a global `median` drowns minority-regime
+   chemistry. Fix: per-case median, then max across cases — every operating
+   condition votes with its own median coupling pattern.
+
+### 3.2 Validation-gated greedy elimination (the actual compressor)
+
+The case-aware DRG values are used only as an *ordering*. Species are removed in
+batches (ascending order, batch size 12–14 growing on success, bisected on
+failure) and each batch is accepted only if a 42-case IDT screen (all claimed
+fuels spot-checked) stays within tolerance (12 % lite, 25 % xs). Failed batches
+bisect to single species; singles that fail are declared essential and kept.
+This is a directed relative of DRGASA/unimportant-species elimination, with
+acceptance decided by macroscopic observables rather than graph quantities.
+Cost: 107 trials / 17 min (lite), 110 trials / 14 min (xs) on 2 cores.
+The greedy correctly refused to remove, e.g., iC4H9/tC4H9 (needed by iC4H10),
+C6H5CO/C6H5CHO (toluene), CH2OCH2 (low-T C2H4), CH3O, nC3H7, H2C4O, aC3H5.
+
+Reaction-level compression was limited to eliminating reactions made impossible
+by removed species (784→438 for lite) — see §3.3 for why nothing further.
+
+### 3.3 Screen overfitting — two rejected candidates (negative result 2)
+
+* **Greedy reaction elimination (66 sp / 165 rxn):** passed its 42-case screen
+  at 11.5 % max error, then failed the full matrix catastrophically — C2H6 IDT
+  up to +13 900 %, 72 failing extended cases. The screen contained no C2H6
+  ignition case and sparse aromatic cases; 100+ accepted batches of thin,
+  individually-invisible cuts accumulated into broken subnetworks. Rejected.
+* **Conservative reaction trim (66 sp / 404 rxn, importance < 0.02):** clean on
+  the full IDT matrix (max 10.3 % primary) but degraded flames 3× in mean error
+  (H2 +12.1 cm/s): the IDT-state-based importance ranked flame-critical
+  channels (H+H+H2 recombination, C2H+H→C2H2) as negligible. Rejected in favor
+  of the untrimmed 438-reaction mechanism.
+
+Both mechanisms and full logs are retained (`results/rxnA*`, `results/trimA*`).
+
+## 4. Resulting mechanisms and the trade-off curve
+
+Errors are reduced-vs-parent; "max" is the worst single case, "mean" the average
+absolute error. Full per-case data in `data/ref_*.json`, consolidated in
+`results/validation_summary.json`.
+
+| mechanism | sp / rxn | IDT primary (216) max / mean | IDT extended (252) max / mean | SL primary (36) max / mean | SL extended (17) max / mean | SL 5 atm (12) max / mean |
+|---|---|---|---|---|---|---|
+| parent | 111/784 | — | — | — | — | — |
+| **lite** | 66/438 | **14.0 % / 1.7 %** | 21.1 %* / 6.6 % | **3.6 cm/s / 0.95** | 15.3 cm/s / 3.3 | 1.9 cm/s / 0.6 |
+| **xs** | 58/361 | 23.8 % / 3.8 % | 57.0 %* / 16.4 % | 7.4 cm/s / 2.7 | 10.8 cm/s / 3.4 | 3.9 cm/s / 1.9 |
+| **xsc4** | 48/307 | 23.8 % / 3.8 % | 57.2 %† / 5.9 % | 7.3 cm/s / 2.7 | 10.8 cm/s / 3.4 | 3.9 cm/s / 1.8 |
+| greedyC (not delivered) | 57/365 | ≈ xs | ≈ xs | ≈ xs | ≈ xs | ≈ xs |
+
+\* excluding C6H6 (see §6); including benzene the maxima are 48.8 % (lite) and
+151 % (xs). † xsc4 extended matrix covers C0–C4 fuels only (aromatic cases are
+outside its scope by construction).
+
+Per-fuel detail (max |error|):
+
+**lite** — IDT: H2 0.1 %, CH4 0.2 %, C2H4 2.0 %, C2H6 2.7 %, C3H8 6.4 %,
+C4H10 14.0 %, CO 0.1 %, CH3OH 0.1 %, iC4H10 12.0 %, C2H2 19.1 %, C6H5CH3 20.3 %,
+C3H6 21.1 %, C6H6 48.8 %. SL: H2 ≈0, CH4 1.4, C2H6 1.4, C3H8 1.3, C4H10 3.5,
+C2H4 3.6, CH3OH 0.2, C3H6 3.6, C2H2 15.3 cm/s (11.5 %).
+
+**xs** — IDT: H2 0.1 %, CH4 3.8 %, C2H4 3.8 %, C2H6 4.0 %, C3H8 23.8 %,
+C4H10 23.2 %, CO 0.1 %, CH3OH 1.4 %, C2H2 23.8 %, iC4H10 24.0 %, C3H6 57.0 %,
+C6H5CH3 45.5 %, C6H6 151 %. SL: H2 ≈0, CH4 3.3, C2H4 3.2, C2H6 3.8, C3H8 6.6,
+C4H10 7.4, CH3OH 0.6, C2H2 3.8, C3H6 10.8 cm/s (41 %).
+
+**xsc4** — identical to xs on C0–C4 fuels (within ±0.1 cm/s); no aromatic
+coverage at all.
+
+Reading of the curve: 111→66 species is nearly free on the primary matrix
+(worst 14 %); 66→58 starts costing alkane lean/high-T accuracy (~24 %); below
+~58 the greedy found nothing more to remove without breaking primary-fuel
+screens (a 0.35-tolerance run converged to 57 with the same composition class),
+i.e. the practical floor of this approach on the full USC-II target set is
+≈57–58 species. Dropping aromatics entirely (xsc4) buys 10 more species with no
+C0–C4 accuracy loss — but no benzene/toluene capability.
+
+## 5. Consistency checks
+
+* All three mechanisms load in Cantera 3.2; every reaction element-balanced
+  (verified programmatically, 0 violations).
+* Duplicate-reaction flags recomputed after filtering (a lone reaction may not
+  keep the flag); third-body efficiency lists pruned of removed species only.
+* Thermo/transport data untouched; the parent's NASA-polynomial mid-T
+  discontinuity warnings (CH2OCH, C4H5-2, C4H6-2, C2H3CHOCH2, CH3CHCHCHO) are
+  inherited verbatim where those species survive.
+* No ignition-failure introduced: 0 no-ignition cases on the primary matrix for
+  all three mechanisms (the 3 dry-CO no-ignition cases are inherited from the
+  parent's own behavior).
+
+## 6. Known limitations (honest list)
+
+1. **Benzene (C6H6):** lite −49…+41 % IDT; xs up to +151 %. The greedy screen
+   (design oversight) covered toluene but not benzene; post-hoc tests show the
+   C5H6/lC5H7 subnetwork is so finely balanced that only a near-complete
+   aromatic block restores it (~10 species, conflicting with the size target).
+   Toluene — the more practically relevant aromatic — is retained at ≤20 % (lite)
+   / ≤46 % (xs). Treat benzene IDT as outside the claimed accuracy.
+2. **C3H6 (propene), xs/xsc4 only:** −25…−41 % SL, up to +57 % lean IDT; the
+   C3H4/C3H5-isomer block was eliminated; reinstating 4 species only halves the
+   error, so it was left out and is documented instead. lite keeps C3H6 at
+   ≤21 % IDT / ≤3.6 cm/s SL.
+3. **C2H2 rich flames:** −11.5 % SL worst-case for lite (C4 chemistry reduced);
+   xs is coincidentally better here (2.9 %) through error cancellation.
+4. **Lean, low-T corners** carry the largest IDT errors everywhere (by far the
+   stiffest chemistry); errors are systematic in sign per fuel, not random.
+5. Validation is against the **parent**, not against raw experiments (parent
+   fidelity to experiment is a separate question — see §7 for a spot check).
+   Dry-CO ignition is outside the validated domain (no-ignition in 2 s already
+   in the parent).
+
+## 7. Comparison with experimental data (external)
+
+Independent literature check, compiled by a delegated researcher (lit-scout;
+full citations, source quotes and URLs in `agents/lit-scout/literature_refs.json`
+and `literature_refs.md`). These are **experimental measurements**, distinct
+from the parent-model references used elsewhere in this report; they were not
+used at any reduction or fitting step.
+
+**Laminar burning velocity, fuel/air at 1 atm, 298 K (experimental values vs
+parent prediction).** Experimental consensus from multiple independent
+laboratories (Park/Egolfopoulos, Bosschaart/de Goey, Vagelopoulos, Jomaas/Law,
+Hassan/Faeth, Taylor 1991; see citations):
+
+| fuel, phi | experiment (cm/s) | parent (cm/s) | parent−exp |
+|---|---|---|---|
+| CH4, 1.0 | 35.9±1 / 36.5±2 / 34.7±2 (≈36) | 36.5 | within ±2 % |
+| C2H4, 1.0 | 62.3–68.5 (≈65) | 63.8 | within spread |
+| C3H8, 1.0 | 38.3–41.4 (≈39–40) | 39.6 | within spread |
+| C2H6, 1.0 | 38.1–40.8 (≈40) | 44.1 | ≈ +9 % |
+| CH3OH, 1.0 / 1.1 | 43.2±1 / 46.3±1 | 46.1 / 50.4 | ≈ +7…+9 % |
+| H2, peak ≈1.7–1.8 | 280–285 | 296 | ≈ +4 % |
+| C2H2/air, ≈1.1 | ~130–145 (**unsourced** here — canonical refs paywalled) | 133 | n/a |
+
+**Ignition delay, shock tube.** Brabbs & Robertson, NASA TM-87268 (1986),
+2 % CH4/4 % O2/94 % Ar, phi = 1.0 (experimental, pressure-trace): 1.448 ms at
+1593 K / 2.76 atm and 0.794 ms at 1655 K / 2.93 atm. Computed at the same
+conditions (constant-volume):
+
+| model | 1593 K | 1655 K |
+|---|---|---|
+| experiment | 1.448 ms | 0.794 ms |
+| parent | 0.920 ms (0.64×) | 0.489 ms (0.62×) |
+| usc2_lite | 0.918 ms | 0.488 ms |
+| usc2_xs | 0.986 ms (1.07× parent) | 0.527 ms (1.08× parent) |
+
+Two conclusions: (i) the *parent itself* predicts ignition ≈35–40 % faster than
+these shock-tube points (a property of USC-II and of the idealized reactor, not
+of the reduction); (ii) `usc2_lite` reproduces the parent at these *out-of-
+matrix* conditions (Ar diluent, ~3 atm) to <0.2 %, i.e. the reduced mechanism's
+fidelity to the parent is not limited to the validation grid.
+
+**Net:** the parent agrees with flame-speed experiments to within experimental
+spread for CH4/C2H4/C3H8 and is ~4–9 % fast for H2/CH3OH/C2H6; our tolerance
+frame (IDT ~25 %, SL ~5 %/2 cm/s reduced-vs-parent) is of the same order as
+both experimental scatter and the parent's own deviation from experiment.
+
+## 8. Reproducibility and compute inventory
+
+* `src/`: simlib.py (IDT/flame kernels), cases.py (matrices), run_reference.py
+  (parallel runner, also remote), drgep.py + run_drgep2.py (case-aware DRG),
+  greedy.py (species elimination), rxn_elim.py / rxn_trim.py (reaction tools —
+  produced rejected candidates), build_mech.py (yaml filtering + balance check),
+  validate.py / summarize.py (error metrics), remote_*.py (batch drivers).
+* `data/`: all reference and candidate result JSONs + sampled-state npz files;
+  `results/`: rankings, elimination logs (`greedyA/B/C_log.jsonl`, `rxnA_log.jsonl`),
+  keep-lists, rejected candidates (`results/rxnA_mech.yaml`, `results/trimA_th0.02.yaml`).
+* Compute: 468 + 65 parent reference simulations; ~330 greedy trials; full
+  533-case validation of 5 candidate mechanisms. Remote 64-core jobs:
+  job_0de2c35a (parent flames), job_16addf51 (404-rxn, rejected),
+  job_3a975f90 (lite), job_fb5c7a1f (xs), job_237dd85c (xsc4) + 3 infra probes.
+* Everything runs offline from this workspace (`wheels/` pins cantera 3.2.0 +
+  numpy 2.5.3 for the network-disabled remote nodes).

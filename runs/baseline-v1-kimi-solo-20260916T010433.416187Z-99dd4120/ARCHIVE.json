@@ -1,0 +1,36 @@
+{
+  "run_id": "baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120",
+  "task_variant": "baseline-v1",
+  "profile": "solo",
+  "harness": {
+    "name": "kimi_code_node",
+    "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+  },
+  "model": {
+    "name": "kimi-k3",
+    "reasoning_effort": "max",
+    "context_tokens": 1048576,
+    "max_agents": 1
+  },
+  "lifecycle_metadata": {
+    "status": "COMPLETED",
+    "phase": "postrun_finished",
+    "captured_at": 1789541819.3538437
+  },
+  "endpoint_status_metadata": "COMPLETE",
+  "owner_finished_marker_captured": true,
+  "snapshot_label": "ended_run_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:05:03.832645+00:00",
+  "capture_end_utc": "2026-09-16T15:43:25.809237+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 34,
+  "source_file_bytes_retained": 5954023,
+  "source_full_snapshot_files_local_only": 1368,
+  "arm_directory": "solo-max",
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

@@ -1,0 +1,18 @@
+base: expert-v2-common.yaml
+profile: team
+output_prefix: expert-v2-deepseek-team
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: api
+  protocol: responses
+  env_file: ../.env
+  base_url_env: DEEPSEEK_BASE_URL
+  api_key_env: DEEPSEEK_API_KEY
+model:
+  name: deepseek-flash
+  reasoning_effort: max
+  max_agents: 3
+  researcher_model: deepseek-flash
+  researcher_effort: max

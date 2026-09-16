@@ -1,0 +1,44 @@
+{
+  "schema": "kinetic-agents-harness-acceptance.v1",
+  "project_version": "0.2.0",
+  "date_utc": "2026-09-15",
+  "default_suite": {"passed": 158, "skipped": 9, "seconds": 23.24},
+  "native_enabled_excluding_claude_file": {"passed": 165, "seconds": 70.03},
+  "claude_negative_recheck": {
+    "failed": 1,
+    "seconds": 2.22,
+    "stopped_on_first_failure": true,
+    "stage": "CLI bootstrap in strict filesystem sandbox",
+    "model_calls": 0,
+    "scientific_solves": 0,
+    "separate_team_test_completed": false
+  },
+  "drivers": {
+    "codex": {"version": "0.153.4", "native_synthetic_api": "PASS", "transport": "responses"},
+    "kimi_code": {"version": "1.50.0", "native_synthetic_api": "PASS", "transport": "chat_completions"},
+    "claude_code": {"version": "2.1.272", "runtime": "Bun 1.4.3", "native_synthetic_api": "BLOCKED_BEFORE_API", "transport": "anthropic"}
+  },
+  "configurations_validated": 8,
+  "local_distribution": {
+    "version": "0.2.0",
+    "wheel_entries": 97,
+    "sdist_entries": 171,
+    "private_data_excluded": true,
+    "offline_installed_module_imports": 89,
+    "installed_source_freeze_files": 91,
+    "installed_source_freeze_verified": true,
+    "published": false
+  },
+  "shared_task_and_scoring_unchanged": true,
+  "real_model_calls": 0,
+  "new_remote_jobs": 0,
+  "real_scientific_solves": 0,
+  "model_dollar_cap": null,
+  "limits": [
+    "Actual provider/model compatibility and research performance not tested",
+    "Not a complete network isolation audit",
+    "CLI entry/version locked, not an immutable image of all dependencies",
+    "Claude container alternative not deployed",
+    "No publication or scientific claim authorization"
+  ]
+}

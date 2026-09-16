@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "final/lut50_t327.yaml",
+    "sha256": "c8027279332d27a3e463722295f0817938fcc61af2b81dc2064240f85f33f04a",
+    "distributed_path": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/final_artifacts/c8027279332d27a3e463722295f0817938fcc61af2b81dc2064240f85f33f04a"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "final/lut60.yaml",
+    "sha256": "dd5b39a9c6a96d9b666a8d8b66c5757e624e857a95c26008def05a10892ada0b",
+    "distributed_path": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/final_artifacts/dd5b39a9c6a96d9b666a8d8b66c5757e624e857a95c26008def05a10892ada0b"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "final/lut40_g60.yaml",
+    "sha256": "1adb01a69bb919c9e10b344612263ba8dde0b03f1ed014bc044d24ac1631f73e",
+    "distributed_path": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/final_artifacts/1adb01a69bb919c9e10b344612263ba8dde0b03f1ed014bc044d24ac1631f73e"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "c25aebfeabc4144446d8742b595ff98ac90f7e00890b0841f1bb27bb3f9c837e",
+    "distributed_path": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/final_artifacts/c25aebfeabc4144446d8742b595ff98ac90f7e00890b0841f1bb27bb3f9c837e"
+  }
+]

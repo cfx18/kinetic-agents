@@ -1,0 +1,42 @@
+{
+  "collected_at_utc": "2026-09-16T13:15:10.014106+00:00",
+  "remote_root": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs",
+  "directories": [
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_12fe63bc0f88475da6b6dc79_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_240e744073cd4af98f8d729f_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_3a9fcc9a572e45bfb6a6fcb6_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_3a9fcc9a572e45bfb6a6fcb6_endpoint_bulk_v1"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_61bc9612470e4d46ab08ef0e_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_8975b1c396724bdfaca362a1_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_8b7403c260e04d29bdda493a_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_ca02e2d6c3b1457f9b99bb1a_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_ca02e2d6c3b1457f9b99bb1a_endpoint_bulk_v1"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_e598e3112e8446a08ba0586d_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_eaab23cebb934bb2ba9f69f0_endpoint"
+    },
+    {
+      "directory": "/public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/cfx_astra_f61e625cdc7842b397ddfa9c_endpoint"
+    }
+  ]
+}

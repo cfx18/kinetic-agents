@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_lite.yaml",
+    "sha256": "477bffd718c5bd539172f9e78ac8b1020a6e00851908c0a5b635c1f8c92958ed",
+    "distributed_path": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/final_artifacts/477bffd718c5bd539172f9e78ac8b1020a6e00851908c0a5b635c1f8c92958ed"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_xs.yaml",
+    "sha256": "f6816daf4c7cd4fc4419e763d491a2e444131a94fc14a5142482e3a3fd94a5a5",
+    "distributed_path": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/final_artifacts/f6816daf4c7cd4fc4419e763d491a2e444131a94fc14a5142482e3a3fd94a5a5"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_xsc4.yaml",
+    "sha256": "8422da6090cc6c56b1871d999762929f0b8552bfc03f19379e80f2c1774d6252",
+    "distributed_path": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/final_artifacts/8422da6090cc6c56b1871d999762929f0b8552bfc03f19379e80f2c1774d6252"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "387ccc506a60e8a22207cf98291558baacfa248fef4649184c53ce8ed4f1e3a0",
+    "distributed_path": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/final_artifacts/387ccc506a60e8a22207cf98291558baacfa248fef4649184c53ce8ed4f1e3a0"
+  }
+]

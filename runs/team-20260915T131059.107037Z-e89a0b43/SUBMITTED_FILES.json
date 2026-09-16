@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_54sp.yaml",
+    "sha256": "d82ae41282e84dd026407c576aba3bcdb80a0f395181c27aa8a5602ea5f44599",
+    "distributed_path": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/final_artifacts/d82ae41282e84dd026407c576aba3bcdb80a0f395181c27aa8a5602ea5f44599"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_56sp.yaml",
+    "sha256": "5becdc5cd5a4aba61233d653fdfba3be343f81bd30f64774597946bdcda736f3",
+    "distributed_path": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/final_artifacts/5becdc5cd5a4aba61233d653fdfba3be343f81bd30f64774597946bdcda736f3"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/usc2_69sp.yaml",
+    "sha256": "d6e50306e2657ea1d0e8604f4f59db80f759aeb9af9e9b5688da5dfc46e1c040",
+    "distributed_path": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/final_artifacts/d6e50306e2657ea1d0e8604f4f59db80f759aeb9af9e9b5688da5dfc46e1c040"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "f85ff5466e151ac0bd16fd3978f46880e342d3a6636cefc4e924ffa8d7f9e07e",
+    "distributed_path": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/final_artifacts/f85ff5466e151ac0bd16fd3978f46880e342d3a6636cefc4e924ffa8d7f9e07e"
+  }
+]

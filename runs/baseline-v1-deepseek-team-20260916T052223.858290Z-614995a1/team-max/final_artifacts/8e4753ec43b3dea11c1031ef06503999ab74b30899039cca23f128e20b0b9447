@@ -1,0 +1,851 @@
+# Autonomous kinetic mechanism reduction of USC-II
+
+Team: principal (reduction engine, validation, report) + two bounded researchers
+(`harness`: independent simulation harness and reference data; `expdata`: experimental ignition-delay
+and laminar-flame-speed data plus downloaded literature mechanisms).
+
+Every number below is traceable to a file in this workspace and, where it came from the remote
+queue, to a job id.  Incomplete and negative results are stated as such.
+
+## 1. Task and deliverables
+
+Reduce the supplied USC-II mechanism (111 species, 784 reactions) while retaining useful accuracy in
+*experimentally measurable macroscopic observables* - ignition delay and laminar flame speed - across
+chemically diverse conditions, and describe the accuracy/complexity trade-off quantitatively.
+Smaller species **and** reaction networks are a central objective.
+
+Deliverables: three mechanism YAML files - `usc2_red_93sp.yaml` (both observables validated over
+the whole tested envelope), `usc2_red_69sp.yaml` and `usc2_red_63sp.yaml` (most aggressive; both
+observables validated *inside the stated envelope* - the two compact members are ~29 % low on lean
+propene at 300 K / 5 atm, section 4.2.1, and a documented six-species repair exists, section 4.2.3)
+- plus this report, the scripts/data that reproduce them and an honest account of what failed.
+
+## 2. Parent mechanism and provenance
+
+* `USCII_parent.yaml` - byte copy of the task-supplied parent (`tasks/usc_ii/parent.yaml`),
+  111 species / 784 reactions (Cantera 3.1 YAML of USC_Mech_II).  Never modified.
+* Mechanisms downloaded from the internet live only under
+  `agents/expdata/data/raw/mech/` (GRI-Mech 3.0, DRM19, FFCM1_Red, POLIMI2020, SanDiego2016)
+  and are used solely as literature baselines; they are not reduced mechanisms of this run.
+* Independent sanity check of the parent (`agents/harness/results/parent_mech_check.json`):
+  all 784 reactions element-balanced (worst imbalance 0.0), species lists consistent, one thermo
+  defect flagged (`CH2OCH`, cp/R jump 8.7 % at Tmid = 500 K), no negative cp.  All reduced
+  mechanisms inherit species thermo data verbatim; nothing was refitted.
+
+## 3. Methods
+
+### 3.1 Validation-driven greedy elimination (our design)
+
+Graph-based methods were implemented first and rejected *for this mechanism*: the DRGEP
+interaction coefficient saturates (110 of 111 species reach R_A >= 1e-3, most exactly 1.0) because
+the USC-II reaction graph is dense and third-body reactions connect everything, so the ranking has
+no discriminative power (section 6).
+
+Instead, candidate importance is **measured**:
+
+1. probe set: 77 constant-volume adiabatic ignition cases (11 fuels x 7 T/P/phi/diluent states,
+   all verified to ignite in the parent; tau from 4.2e-6 s to 0.52 s);
+2. ranking pass: build the mechanism without each removable species (or reaction) and evaluate the
+   probe-set ignition-delay error against the parent reference;
+3. greedy batching: remove the smallest-error candidates first in batches; accept a batch only if
+   the whole probe set stays inside a tolerance box (mean, 95th percentile and maximum of
+   |ln(tau_reduced/tau_parent)|), otherwise halve the batch (bisection down to 1) and finally skip;
+4. the family is emitted as the sequence of accepted steps, so the whole accuracy/complexity
+   trade-off curve is available, not just one end point.
+
+The probe set *is* the acceptance metric, so probe errors are **not** reported as accuracy; every
+accuracy figure below comes from held-out conditions (section 4).
+
+### 3.2 Mixture convention
+
+All our cases use `X_fuel=1`, `X_O2=stoich_O2/phi`, `X_diluent=3.76*stoich_O2/phi`,
+`stoich_O2 = C + H/4 - O/2` (`scripts/kinlib.py::mix_X`, which also maps fuel aliases such as
+`nC4H10 -> C4H10`).  An earlier family was produced with the literal `X_O2=1/phi`, which makes
+`phi=1` about `stoich_O2` times richer for C2+ fuels; that run is void and is reported as such
+(sections 4.1, 6).
+
+### 3.3 Observables and validation design
+
+* **Ignition delay** - 0-D adiabatic constant-volume `IdealGasReactor` (rtol 1e-7, atol 1e-12),
+  `tau` = time of maximum dT/dt, identical for the parent reference and for every candidate.
+  Held-out matrix: 11 fuels x T{1000,1200,1450,1700} K x P{1,10,30} atm x phi{0.5,1.0,2.0} x
+  {air, Ar} = 792 cases, deliberately offset from the probe states.  All 792 ignite in the parent
+  (tau 6.9e-7 ... 0.768 s).
+* **Laminar flame speed** - 1-D freely propagating flame (`ct.FreeFlame`, width 0.05 m,
+  mixture-averaged transport, Soret off, staged solve with default refine criteria, Su = velocity
+  at x = 0).  Reported set: 11 fuels at phi = 1, 300 K, 1 atm; the wider 45-case set
+  (`data/flame_cases.csv`) adds phi = 0.7/1.3 and 5 atm / 500 K subsets.
+  Equilibrium (HP) flame temperature is recorded per case.
+* **Experimental comparison** - 289 shock-tube / RCM ignition-delay points over 5 fuels
+  (`agents/expdata/data/exp_ignition.csv`, curated by the `expdata` researcher, with source URL,
+  citation and digitisation flag per row; explicit initial compositions reconstructed and verified
+  against the raw ReSpecTh XML, `scripts/exp_cases_from_expdata.py`), screened to
+  `tau_exp <= 0.05 s` (section 4.4).  Laminar burning velocities from the same effort
+  (`agents/expdata/data/exp_flamespeed.csv`) are compared with the computed flame speeds.
+* **Literature baselines** - GRI-Mech 3.0 (53 species / 325 reactions) and DRM19 (21 / 84) on the
+  same case sets, on the fuel subsets they contain.
+* **Consistency** - element balance of every reaction, NASA7 cp/h/s continuity scan over
+  300-3000 K, species/reaction counts, per-mechanism cost (wall time per case on the same machine
+  and process count).
+* Reporting tolerances (chosen, not inherited): |dln tau| > ln(1.35) = 0.30 is called a ignition
+  "failure", |dSu/Su| > 15 % a flame failure.
+
+### 3.4 Selection loop, and the flame-informed repair outside it
+
+The greedy elimination loop (3.1) accepts a batch of species removals when the *ignition* probe set
+stays inside the tolerance box; it never evaluates a flame.  Section 4.2 shows what that costs: the
+members below ~70 species pass ignition and destroy the flame speed.  We therefore added an explicit
+**second, post-hoc design step** to the workflow:
+
+1. run the ignition-greedy family (parent 111 -> 93 -> 59 -> 50 species) and measure both observables
+   for every member on the held-out matrix and the 11-fuel flame set;
+2. when a member fails the flame criterion, re-add the parent species that the flame chemistry needs
+   (`scripts/mk_backadd.py`, which rebuilds the mechanism from the parent text as
+   `keep = species(member) + back-added species`, taking every parent reaction whose species all
+   survive, and pruning removed species from third-body efficiency lists);
+3. re-measure both observables, and keep the repaired member only if it passes both.
+
+`results/red59_bA.yaml` (69 species) and `results/red50_bA.yaml` (63 species) are the products of
+step 2/3.  This is *not* a flame-in-the-loop optimisation: the flame test is applied to a handful of
+final candidates, not inside the ranking, and the back-added sets were chosen by chemical
+reasoning (CH2/CH/C2H/HCCO/CH3CHO/CH3CO/CO2/propargyl-allene/C4H2 are the flame-critical block lost
+between the 93- and 59-species steps) rather than by an automated sensitivity search.  Section 5
+lists this as a limitation.
+
+The same post-hoc pattern was used once more after the lean/high-pressure corner check of section
+4.2.1: the allyl / propenyl-aldehyde block lost between the 93- and 63-species steps was re-added to
+the compact members (`results/red50_bA_p6.yaml`, `results/red59_bA_p6.yaml`), which repairs the
+lean-propene corner at both 1 and 5 atm at the cost of six species (section 4.2.3).  This second
+repair is also outside the selection loop, and it moves the *measured* frontier rather than the
+selection criterion: a flame-aware acceptance test inside the loop was still not affordable.
+
+## 4. Results
+
+### 4.1 Species family: complexity vs accuracy (held-out ignition matrix)
+
+Reduction of species (parent 111 species / 784 reactions), measured locally on 2 cores against the
+independently computed parent reference `results/ref_ign_matrix.csv`
+(`scripts/local_validate.py`, summary `results/local_val_void_summary.json`):
+
+| mechanism | species | reactions | ign mean | ign p95 | ign max | frac > 35 % | cost per case |
+|---|---|---|---|---|---|---|---|
+| USC-II parent | 111 | 784 | 0 | 0 | 0 | 0 | 1.00 |
+| red-93sp | 93 | 714 | 0.0045 | 0.0367 | 0.079 | 0 % | 0.38 |
+| red-59sp | 59 | 396 | 0.0871 | 0.304 | 0.520 | 5.2 % | 0.33 |
+| red-50sp | 50 | 304 | 0.187 | 0.542 | 1.025 | 23.7 % | 0.23 |
+
+`ign` = |ln(tau_reduced/tau_parent)|; cost per case = wall time of one ignition case relative to
+the parent on the same machine and process count (792 cases, 2 processes).  All 792 cases ignite in
+every member; all members are element-balanced.  The two *flame-repaired* members that are
+delivered instead of the 59/50-species rows are measured in the same run
+(`results/lv_ba_summary.json`): 69 species / 522 reactions mean 0.060, p95 0.233, max 0.359,
+1.1 % of cases above 35 %; 63 species / 461 reactions mean 0.111, p95 0.444, max 0.697, 9.8 %
+above 35 %.
+
+Where the error sits (mean |ln| per fuel, `scripts/perfuel_report.py`):
+
+| fuel | red-93sp | red-59sp | red-50sp |
+|---|---|---|---|
+| CH4 | 0.002 | 0.016 | 0.031 |
+| C2H6 | 0.003 | 0.018 | 0.064 |
+| C2H4 | 0.014 | 0.138 | 0.161 |
+| C4H10 | 0.006 | 0.052 | 0.236 |
+| iC4H10 | 0.007 | 0.072 | 0.117 |
+| CH3OH | 0.003 | 0.009 | 0.289 |
+| C3H8 | 0.009 | 0.069 | 0.140 |
+| C3H6 | 0.007 | 0.138 | 0.171 |
+| C4H81 | 0.009 | 0.213 | 0.324 |
+| C6H6 | 0.005 | 0.135 | 0.306 |
+| C6H5CH3 | 0.004 | 0.101 | 0.222 |
+
+Methane and ethane ignition are essentially untouched even at 50 species; the unsaturated C4 and
+the aromatic fuels lose the most, and methanol loses strongly only at the most aggressive step.
+Worst individual cases of red-50sp: lean methanol at 1200 K / 1 atm (tau x 2.8), lean 1-butene at
+1700 K (x 2.3), benzene at 1700 K / 1 atm in Ar (x 2.1).
+
+### 4.2 Flame validation: ignition-guided reduction does NOT transfer to flames
+
+Member flame speeds at phi = 1, 300 K, 1 atm, against the parent's container matrix
+(`agents/harness/parent_flame_1atm.csv`, same solver settings; `scripts/local_flame_table.py`,
+raw data `results/local_flame_table.csv`), 11 fuels:
+
+| mechanism | species | CH4 | C2H4 | C2H6 | C3H8 | C3H6 | C4H10 | iC4H10 | C4H81 | C6H6 | C6H5CH3 | CH3OH |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| parent (cm/s) | 111 | 36.85 | 63.84 | 44.39 | 39.93 | 40.35 | n/a | 33.09 | 42.90 | 38.82 | 33.68 | 46.40 |
+| red-93sp (rel.) | 93 | +0.6 % | -0.0 % | -0.1 % | -0.1 % | -0.4 % | n/a | -0.1 % | -0.6 % | -1.7 % | -2.3 % | +0.0 % |
+| red-59sp (rel.) | 59 | -82 % | -79 % | -76 % | -91 % | -95 % | -88 % | -94 % | -93 % | -93 % | -92 % | -87 % |
+| red-50sp (rel.) | 50 | -84 % | -80 % | -78 % | -92 % | -95 % | -94 % | n/a | -96 % | -97 % | -97 % | -94 % |
+
+(`n/a`: no case of that fuel in the local member table at the time of writing - the parent
+reference comes from the container matrix, `agents/harness/parent_flame_1atm.csv`; for CH4 the
+parent value is also reproduced locally as 36.8549 cm/s in `results/flame_one_out.csv`.)
+
+An **independent flame run by the researcher `harness`** with its own driver, over a wider case set
+(66 cases: 11 fuels x phi {0.7, 1.0, 1.3} x T_in {300, 500} K at 1 atm), agrees:
+
+| mechanism | cases | mean |dSu/Su| | p95 | max | cases that errored |
+|---|---|---|---|---|---|
+| red-93sp | 66 | 0.98 % | 2.7 % | 3.6 % | 0 |
+| red-59sp | 64 | 83.4 % | 97.0 % | 97.9 % | 2 |
+| red-50sp | 64 | 83.5 % | 96.7 % | 98.4 % | 2 |
+
+(`results/harness_red_flame_1atm.csv`, fetched from the researcher's container job
+`job_816ae6dbbeef6316ce011206`.)
+
+**This is the central negative result of the run.**  The 59- and 50-species members pass the
+ignition criterion they were selected under (mean |dln tau| = 0.087 and 0.187, i.e. 8.7 % and 18.7 %
+mean deviation), yet they are *unusable for flame prediction*: laminar flame speeds collapse by a
+factor 4-20 across **every** fuel tested.  The reason is visible in the species lists: the steps
+between 93 and 59 species delete the entire `CH2` / `CH` / `C2H` / `HCCO` / `CH3CHO` / `CH3CO` /
+`CO2` / `pC3H4` / `aC3H4` / `C4H2` block, and the fast radical pool that sets the flame speed is
+gone.  Ignition delays in a 0-D constant-volume reactor at T >= 1000 K are far less sensitive to
+these species than a 300 K flame, so the greedy ignition-based ranking never saw the loss.
+
+**Flame-informed repair (our design).**  From the two failing members we rebuilt two members by
+back-adding exactly that block (all species are parent species; all reactions, rates, thermo and
+transport are the parent's, reconstructed with `scripts/mk_backadd.py`):
+
+| member | species | reactions | ignition mean / p95 / max | frac > 35 % |
+|---|---|---|---|---|
+| `results/red59_bA.yaml` (`usc2_red_69sp.yaml`) | 69 | 522 | 0.060 / 0.233 / 0.359 | 1.1 % |
+| `results/red50_bA.yaml` (`usc2_red_63sp.yaml`) | 63 | 461 | 0.111 / 0.444 / 0.697 | 9.8 % |
+
+Flame check on the four diagnostic cases (CH4, C2H4, C3H8, CH3OH, phi = 1, 300 K, 1 atm):
+
+| mechanism | CH4 | C2H4 | C3H8 | CH3OH |
+|---|---|---|---|---|
+| red59_bA vs parent | +0.8 % | +1.4 % | -5.2 % | +0.0 % |
+| red50_bA vs parent | +0.8 % | +1.4 % | -5.3 % | +0.0 % |
+| (for comparison) red59 | -82 % | -79 % | -91 % | -87 % |
+
+Back-adding 10 (resp. 13) species repaired the flame behaviour of both members *and* improved their
+ignition accuracy (red59_bA 0.060 vs red59 0.087 mean; 1.1 % vs 5.2 % of cases above 35 %).  The
+full 11-fuel flame table for both repaired members is in `results/local_flame_bA_full.csv` and in
+section 4.2.1 below.
+
+### 4.2.1 Eleven-fuel flame table for the two repaired members
+
+Parent reference: `agents/harness/parent_flame_1atm.csv` (container driver, rows phi = 1.0,
+T_in = 300 K, 1 atm); members: `results/local_flame_bA_full.csv` (local driver
+`scripts/local_flame_table.py`, same conditions, different case ids).  The local table labels
+n-butane `C4H10`; the parent file labels it `nC4H10`.
+
+| mechanism | CH4 | C2H4 | C2H6 | C3H8 | C3H6 | nC4H10 | iC4H10 | C4H81 | C6H6 | C6H5CH3 | CH3OH | mean | p95 | max |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| parent (cm/s) | 36.85 | 63.84 | 44.39 | 39.93 | 40.35 | 40.21 | 33.09 | 42.90 | 38.82 | 33.68 | 46.40 | - | - | - |
+| red-69sp (`red59_bA`) | +0.8 % | +1.4 % | +0.3 % | -5.2 % | -11.5 % | -1.9 % | -2.0 % | -3.1 % | -4.1 % | -1.0 % | +0.0 % | 2.9 % | 5.2 % | 11.5 % |
+| red-63sp (`red50_bA`) | +0.8 % | +1.4 % | +0.2 % | -5.3 % | -11.5 % | -9.4 % | -2.1 % | -3.2 % | -7.4 % | -3.3 % | +0.0 % | 4.1 % | 9.4 % | 11.5 % |
+
+The same 11 cases were re-run in a single container job with the parent first in the mechanism list
+(job 7958485, `results/flame_cmp_phi1.csv`), i.e. one driver and one reference for everything:
+parent-referenced mean |dSu/Su| = 0.54 % (93sp), 2.85 % (69sp), 4.07 % (63sp), worst cases C6H5CH3
+(-2.32 %), C3H6 (-11.54 %), C3H6 (-11.55 %).  The mixed-driver construction of the table above
+therefore changes nothing at the printed precision, and the same run also confirms T_ad_HP is
+identical to the parent for every mechanism in all 11 cases (max |dT_ad| = 0.0 K).
+
+Both repaired members have the same worst case (propene, -11.5 %) and their mean errors differ by
+1.2 percentage points, i.e. the 69 -> 63 species step costs flame accuracy only marginally here,
+whereas the 93 -> 69 step costs a factor ~5 in mean flame error (0.56 % -> 2.9 %).  This is the
+quantitative trade-off behind the delivered set; it is a 1-atm, 300-500 K result (see section 5 for
+the pressure caveat).
+
+**Wider flame validation of the two repaired members** (independent driver of the researcher
+`harness`, container job `job_3b721952f1f9ab7d9d5af302`; `agents/harness/results/red69_red63_flame_1atm.csv`,
+`agents/harness/results/red_5atm_subset.csv`).  The 66-case 1-atm matrix is 11 fuels x phi
+{0.7, 1.0, 1.3} x T_in {300, 500} K, each case compared against the parent computed by the *same*
+driver on the *same* case id (no interpolation):
+
+| mechanism | cases | mean |dSu/Su| | p95 | max | worst case | T_ad_HP vs parent |
+|---|---|---|---|---|---|---|---|
+| red-69sp | 66 | 2.95 % | 8.2 % | 22.5 % | C3H6, phi = 0.7, 300 K (19.56 vs 25.24 cm/s) | identical (0.0 K) in all 66 |
+| red-63sp | 66 | 4.30 % | 11.6 % | 22.6 % | C3H6, phi = 0.7, 300 K (19.53 vs 25.24 cm/s) | identical in all 66 |
+
+By equivalence ratio (mean / max): red-69sp 4.0 % / 22.5 % at phi = 0.7, 2.7 % / 11.5 % at phi = 1.0,
+2.1 % / 4.8 % at phi = 1.3; red-63sp 5.6 % / 22.6 %, 3.8 % / 11.6 %, 3.5 % / 8.9 %.  Errors grow
+towards lean mixtures and towards the largest fuels; the rich side is the most accurate.
+
+Pressure check (5 atm, phi = 1, T_in = 300 K, one case per fuel, vs the parent's own 5-atm run,
+`agents/harness/parent_flame_5atm.csv`):
+
+| mechanism | cases | mean |dSu/Su| | max | worst case |
+|---|---|---|---|---|
+| red-93sp | 11 | 0.71 % | 1.80 % | C6H5CH3 (21.26 vs 21.65 cm/s) |
+| red-69sp | 11 | 3.50 % | 14.81 % | C3H6 (21.51 vs 25.25 cm/s) |
+
+**Low-temperature / high-pressure / lean check - a real limitation of the two smaller members.**
+Because the phi = 1 rows above turned out to hide a lean sensitivity, the same three mechanisms were
+run at the most adverse corner of the tested envelope - phi = 0.7, T_in = 300 K, 5 atm, three
+hydrocarbons (container job `job_84386d92759104a618888340`, `results/red_5atm_lean.csv`; parent
+values from `agents/harness/results/parent_flame_5atm.csv`, same driver and conditions):
+
+| mechanism | C3H6 (parent 14.37 cm/s) | C4H81 (16.02) | C6H5CH3 (11.35) |
+|---|---|---|---|
+| red-93sp | -1.0 % | -1.3 % | -4.1 % |
+| red-69sp | **-28.6 %** | -6.1 % | +4.2 % |
+| red-63sp | **-28.7 %** | -8.2 % | -0.7 % |
+
+The phi = 1, 5-atm numbers above are therefore *not* representative of the whole pressure envelope:
+at 300 K the two smaller members under-predict the lean propene flame speed by ~29 %, while the
+93-species member stays within 1 %.  For lean C3H6 at 300 K and elevated pressure the 69- and
+63-species members are **unqualified** - at 5 atm use the 93-species member; at 1 atm the worst
+case over the 66-case matrix stays at ~23 % (lean C3H6 again).  The deficit is a property of the
+removed C3H6/allyl sub-network, not of the reduction principle: restoring a specific six-species
+block repairs it (section 4.2.3).
+
+### 4.2.2 Reaction-network reduction at fixed species count (522 -> 415 reactions)
+
+The same validation-driven greedy loop was then applied to the *reaction network* of the 69-species
+member (`results/red59_bA.yaml`, 522 reactions), on the same 77-case ignition probe with a wider
+tolerance box (mean 0.15 / p95 0.35 / max 0.90).  The container job
+(`job_c6e4f010d3b0d763c79fed74`) accepted 15 batches and stopped at its own wall-clock deadline
+(2077 s of 2100 s) at **69 species / 415 reactions** - a further 20 % of the reaction network -
+with probe mean |dln tau| = 0.107, p95 = 0.350, max = 0.504, 0 failed cases.
+
+Held-out validation of that file (`results/rxn_final_r1.yaml`, container job
+`job_048fa2cec74a04f879f32b02`, same drivers as everything else):
+
+| observable | 69 sp / 522 rxn (delivered) | 69 sp / 415 rxn (attempt) |
+|---|---|---|
+| ignition, 792 held-out cases: mean / p95 / max \|dln tau\| | 0.060 / 0.233 / 0.359 | 0.092 / 0.281 / 0.659 |
+| ignition, fraction of cases > 35 % | 1.1 % | 3.8 % |
+| flame, 11 fuels, phi = 1, 300 K, 1 atm: mean / worst \|dSu/Su\| | 2.9 % / 11.5 % | 14.3 % / 25.6 % |
+| flame, sign of the deviation | mixed (+1.4 % ... -11.5 %) | all fuels low (-2.9 % ... -25.6 %, CH3OH worst) |
+| element balance / T_ad_HP vs parent | clean / identical | clean / identical |
+
+A further 20 % cut of the reaction network - accepted by the ignition box - costs a factor ~1.5 in
+mean ignition error and a factor ~5 in mean flame error, and the flame deficit is *systematic*
+(every fuel is slow) rather than a single bad case.  The file is kept as an audit-trail artefact and
+is **not delivered** (section 6, item 17).  Two honest caveats: the run stopped at its deadline
+rather than at saturation, so a smaller reduction (the first accepted batches were 512 / 486 / 470
+reactions, with probe means 0.056 / 0.083 / 0.091) may well sit closer to the parent on flames - but
+those intermediate mechanisms were not declared as job outputs and were not archived, so they cannot
+be examined without re-running the stage; and the reaction tolerance box, like the species box, is
+ignition-only (section 5, limitation 2).
+
+**Flame-protected reaction reduction (a direct test of that headroom).**  We repeated the reaction
+stage with a protection rule - reactions containing any species of the core radical pool may never
+be removed (`--protect-rxns`, added to `scripts/reduce_engine.py` for this test; container job
+`job_b7058a0c1d1183be09759cf2`, tight box mean 0.10 / p95 0.25 / max 0.60, `remote/run_reduce.py`
+wrapper):
+
+| variant | protected species | eligible | accepted | final | held-out ignition mean / p95 / max (> 35 %) | flame, 11 fuels: mean / max | worst fuel |
+|---|---|---|---|---|---|---|---|
+| A | 14 core-pool species | 27 / 522 | 6 | 497 rxn | 0.080 / 0.259 / 0.834 (2.9 %) | 5.0 % / 12.1 % | C6H6 -12.1 % |
+| B | 8 small radicals | 46 / 522 | 9 | 482 rxn | 0.079 / 0.252 / 0.837 (2.9 %) | 5.1 % / 13.0 % | C6H6 -13.0 % |
+| (reference) unconstrained 4.2.2 run | none | 522 | 15 | 415 rxn | 0.092 / 0.281 / 0.659 (3.8 %) | 14.3 % / 25.6 % | CH3OH -25.6 % |
+| (delivered) 522-reaction member | - | - | - | 522 rxn | 0.060 / 0.233 / 0.359 (1.1 %) | 2.9 % / 11.5 % | C3H6 -11.5 % |
+
+The marginal cost of reaction removal is steep and does not vanish under protection: taking away
+the 25 reactions that do *not* touch the core pool already doubles the mean flame error (2.9 % ->
+5.0 %), and taking away 40 costs the same 2 points more.  For comparison, cutting six *species*
+(69 -> 63) at 461 reactions costs only +1.2 points (4.1 %).  Both protected variants are also
+dominated by the delivered 63-species member, which has fewer species (63), fewer reactions (461)
+and a smaller flame error - so neither is delivered; the experiment's value is the quantitative
+statement that at fixed species the reaction network of this mechanism has essentially no
+flame-neutral headroom left, whereas the delivered members' reaction counts are already the
+parent's own steps.
+
+**How much reaction-network headroom is there at all?**  Counting, in the 522-reaction member,
+the reactions that contain at least one species of a protected set (computed locally with
+`kinlib.reaction_species_sets`):
+
+| protected set | reactions containing it | reactions still eligible for removal |
+|---|---|---|
+| core radical pool, 14 species (H, O, OH, HO2, H2O2, HCO, CH2O, CH3, CH2, CH, CO, CO2, CH2OH, CH3O) | 495 / 522 | 27 (5.2 %) |
+| core pool + C1-C2, 20 species | 507 / 522 | 15 (2.9 %) |
+| only the ten species that the flame-informed back-add restored | 126 / 522 | 396 (75.9 %) |
+
+So at fixed species count the reaction network is *almost entirely* core-pool chemistry: any
+flame-safe reduction can only touch a few per cent of it, whereas the unconstrained ignition-box
+stage was happy to delete 20 % (with the 14 % flame penalty documented above).  The last row also
+shows why the repair worked: the ten back-added species appear in only a quarter of the reactions -
+the collapse was caused by deleting *species*, not by deleting most reactions.
+
+### 4.2.3 Diagnosing and repairing the lean-propene defect of the compact members (six-species repair)
+
+Section 4.2.1's lean corner exposed a large error of the two compact members (-22.6 % at 1 atm,
+-28.7 % at 5 atm on phi = 0.7 propene at 300 K) while the 93-species member stays within 1 %.  The
+members had lost the allyl / propenyl-aldehyde branch of the parent (CH3CCH2, CH3CHCH,
+CH3CHOCH2, CH3CHCHCHO, C2H3CHO, iC4H5 and their reactions): exactly the chemistry a lean propene
+flame is sensitive to, and exactly the chemistry the high-temperature ignition probe does *not*
+flag - re-adding it moves the 792-case ignition statistics by less than the tolerance box
+(0.108 vs 0.111 mean error against the 63-species member).
+Two repair candidates were therefore built by re-adding parent species to the 63-species member
+(`scripts/mk_backadd.py`), with no rates or thermo touched:
+
+* `results/red50_bA_p2.yaml` = 63 sp + {CH3CCH2, CH3CHCH} = **65 sp / 493 rxn**
+* `results/red50_bA_p6.yaml` = 63 sp + {CH3CCH2, CH3CHCH, CH3CHOCH2, CH3CHCHCHO, C2H3CHO, iC4H5} = **69 sp / 517 rxn**
+
+Local 2-core check on the worst case (`results/flame_c3h6_variants.csv`, phi = 0.7, 300 K, propene):
+
+| mechanism | Su at 1 atm (parent 25.24 cm/s) | Su at 5 atm (parent 14.37 cm/s) |
+|---|---|---|
+| red-63sp | 19.54 (-22.6 %) | 10.25 (-28.7 %) |
+| p2 (63 + 2) | 22.64 (-10.3 %) | 12.39 (-13.8 %) |
+| p6 (63 + 6) | 25.29 (+0.2 %) | 14.49 (+0.8 %) |
+
+Both candidates were then taken through the full held-out validation (ignition: 792-case matrix,
+job 7958474, `results/valp6_*_ign.csv`; flames: job 7958485, one driver, parent first in the
+mechanism list so the reference is the parent itself, `results/flame_cmp_phi1.csv` and
+`results/flame_cmp_lean5.csv`):
+
+| mechanism | species / reactions | ignition mean / p95 / max | > 35 % | flame phi = 1, 300 K, 1 atm: mean / max | lean 5 atm phi = 0.7: C3H6 / C4H81 / C6H5CH3 |
+|---|---|---|---|---|---|
+| **usc2_red_93sp** (delivered) | 93 / 714 | 0.0045 / 0.037 / 0.079 | 0 % | 0.54 % / 2.32 % | -1.0 % / -1.3 % / -3.5 % |
+| **usc2_red_69sp** (delivered) | 69 / 522 | 0.060 / 0.233 / 0.359 | 1.1 % | 2.85 % / 11.54 % | -28.6 % / -6.1 % / +4.9 % |
+| **usc2_red_63sp** (delivered) | 63 / 461 | 0.111 / 0.444 / 0.697 | 9.8 % | 4.07 % / 11.55 % | -28.7 % / -8.2 % / -0.1 % |
+| `results/red50_bA_p6.yaml` (repair) | 69 / 517 | 0.108 / 0.434 / 0.696 | 9.5 % | 2.93 % / 9.44 % | +0.85 % / +2.9 % / +0.2 % |
+| `results/red59_bA_p6.yaml` (repair) | 75 / 590 | 0.052 / 0.233 / 0.368 | 1.1 % | 2.26 % / 9.44 % | +0.9 % / +3.4 % / +5.4 % |
+
+The lean-propene collapse is therefore a **species artefact, not a limit of the reduction
+principle**: six parent species restore the parent's flame speed at the worst corner to within 1 %
+at both pressures.  What the repair costs is written in its own row: p6 is a 69-species mechanism
+with the ignition accuracy of the 63-species member (0.108 vs 0.111 mean; 9.5 % vs 9.8 % of cases
+above 35 %) and with flame behaviour much closer to the parent (2.93 % vs 4.07 % mean at phi = 1,
++0.9 % vs -28.7 % at the lean 5-atm corner); it does *not* reproduce the ignition fidelity of the
+ignition-optimised 69-species member (0.108 vs 0.060 mean, 9.5 % vs 1.1 % above 35 %), so at equal
+species count the two 69-species mechanisms sit at opposite ends of the ignition/flame trade-off.
+Adding the same six species to the 69-species member (`red59_bA_p6`, 75 sp / 590 rxn) buys a
+little more ignition accuracy (0.052 vs 0.108 mean, 1.1 % vs 9.5 % above 35 %) and a marginally
+better flame mean (2.26 % vs 2.93 %), but costs six more species and is 2-5 % high on the lean
+5-atm corner rather than 0.2-2.9 % high.
+Neither repair is delivered: the delivery is capped at three mechanisms and the 63-species member
+documents the smallest network achieved in this run.  A user who needs the compact member under
+lean/high-pressure conditions should use `results/red50_bA_p6.yaml`, whose worst measured
+deviation is 9.4 % (iC4H10 at phi = 1) against red63's 22.6-28.7 %.
+
+**Independent check of the repair.**  The researcher `harness` re-ran the key cases with its own
+flame driver, its own case ids and its own parent runs (job 7958514,
+`agents/harness/results/p6_repair_check.csv` and `p6_repair_summary.json`): p6 gives 25.41 cm/s on
+lean propene at 1 atm (its parent 25.24, +0.68 %), 14.49 at 5 atm (14.37, +0.85 %) and 16.49 on
+lean C4H81 at 5 atm (16.02, +2.92 %), while the delivered 63-species member gives 19.53 (-22.60 %),
+10.25 (-28.66 %) and 14.71 (-8.21 %) on exactly the same cases.  An independent implementation on
+an independent machine therefore reproduces both the defect and the repair, and all six rows
+reproduce the parent's T_ad_HP exactly (0.0 K).  One honest discrepancy: harness's 1-atm p6 value is
++0.68 % where our own driver gave +0.2 % (25.41 vs 25.29 cm/s, a 0.5 % implementation gap, larger
+than the 0.1-0.2 % agreement of the 66-case cross-check but immaterial to the conclusion);
+the numbers quoted in the table above are our driver's, the harness numbers are the independent
+reproduction.  Static checks by the same researcher (`p6_static.json`): `results/red50_bA_p6.yaml`
+(sha256 `4f64fdaa...`) is 69 species / 517 reactions, all 517 reactions element-balanced, 0 species
+outside the parent set, no thermo anomalies, and `results/red59_bA_p6.yaml` (75/590) passes the
+same checks.
+
+### 4.3 Flame-speed cross-check across code paths (CH4/air, phi = 1, 300 K, 1 atm)
+
+The same case computed by two independently written flame drivers, on two machines, with
+identical solver settings (freely propagating flame, mixture-averaged transport, Soret off,
+refine ratio 3.0 / slope 0.10 / curve 0.20, auto refinement):
+
+| path | driver | Su (cm/s) | n_grid | T_ad (K) |
+|---|---|---|---|---|
+| local 2-core (`results/flame_one_out.csv`) | `scripts/flame_suite.py` (ours) | 36.8549 | 131 | 2230.3 |
+| container 64-core (`job_7955429`) | same code, offline wheels | 36.85 | 131 | 2230.3 |
+| container 64-core (`agents/harness/parent_flame_1atm.csv`) | `agents/harness/flame_suite.py` (researcher, independent) | 36.8536 | 131 | 2230.3 |
+
+Agreement is 4e-3 % between the two implementations and across machines, and the absolute value
+is physical for methane/air at 300 K, 1 atm (36-38 cm/s; adiabatic equilibrium 2230 K).  This is
+what licenses using the container parent half-matrix as the reference for the member flame speeds
+in section 4.2, even though the two runs never shared a process.
+
+### 4.4 Experimental ignition-delay comparison
+
+`scripts/exp_summary.py` on the local run (`results/local_val_exp_*_expign.csv`), 289 curated points
+screened to `tau_exp <= 0.05 s` (204 points kept, 45 dropped - 44 of the dropped points are
+benzene/toluene entries from four Politecnico di Milano ReSpecTh files that report ignition delays
+up to 1.98 s at 1300 K, three orders of magnitude outside any shock-tube measurement window and
+inconsistent with their own neighbouring points; they are treated as source-data anomalies, not as
+physics):
+
+| mechanism | n | mean |ln(mech/exp)| | p95 | max | mean |ln(mech/parent)| | p95 | max |
+|---|---|---|---|---|---|---|---|---|
+| USC-II parent | 197 | 0.904 | 6.11 | 7.11 | 0 | 0 | 0 |
+| red-93sp (delivered) | 197 | 0.900 | 6.10 | 7.11 | 0.008 | 0.045 | 0.052 |
+| red-69sp (delivered) | 197 | 0.923 | 6.32 | 7.24 | 0.097 | 0.256 | 0.356 |
+| red-63sp (delivered) | 197 | 0.818 | 5.84 | 7.19 | 0.153 | 0.328 | 0.536 |
+| red-59sp (not delivered) | 182 | 1.004 | 6.31 | 7.24 | 0.116 | 0.312 | 0.400 |
+| red-50sp (not delivered) | 182 | 0.919 | 5.75 | 7.15 | 0.184 | 0.391 | 0.557 |
+
+The screen does not drive the conclusion: without it (all 249 usable points, i.e. including the
+44 implausible 0.1-2 s benzene/toluene entries) the numbers are parent 2.166 / red-93sp 2.162 /
+red-69sp 2.227 / red-63sp 2.068 / red-59sp 2.374 / red-50sp 2.220 mean |ln(mech/exp)|, and the
+*reduction-induced* deviation on the same points is 0.007 / 0.124 / 0.162 / 0.137 / 0.189 mean -
+i.e. the reduction adds <= 0.19 to a parent deviation of ~2.2 either way.
+
+Interpretation: the deviation from experiment is dominated by the parent mechanism itself
+(mean factor ~2.5, and a tail of points where the parent is orders of magnitude away from the
+reported delay - partly the tau definition, max dT/dt of a constant-volume run versus the
+pressure-rise/OH* definitions used in shock tubes).  The species reduction adds a small fraction of
+that: on these 289 experimental states the delivered members stay within mean |ln| = 0.10 (69sp)
+and 0.15 (63sp) of the parent, i.e. the reduction moves the prediction by a few per cent of the
+parent-vs-experiment gap, and the two repaired members are *better* than the non-delivered 59/50
+precursors they derive from (0.116 / 0.184).  The 69sp and 63sp rows were added in the final
+revision (`results/local_val_exp_ba_red{59,50}_bA_expign.csv`, same driver, 2-core box, 129 s and
+117 s for the whole 289-point set).
+
+### 4.5 Consistency and independent verification of the delivered files
+
+Our own checks:
+
+* element balance: 0 unbalanced reactions in every delivered mechanism;
+* thermo scan: the flagged species are a subset of the parent's own flags (`CH2OCH`,
+  `CH3CHCHCHO`, `C2H3CHOCH2`, `C4H5-2`, `C4H6-2`); 93-species member keeps three of them, the two
+  smaller members none - inherited, never introduced;
+* every reduced mechanism loads and runs all 792 held-out ignition cases and (where the fuel is
+  present) the flame cases.
+
+Independent verification by the researcher `expdata`, who did **not** build these mechanisms and
+was asked to falsify them (`agents/expdata/verify/VERIFY_deliverables.md`, machine-readable
+`agents/expdata/verify/verify_tables.json`):
+
+| check | verdict |
+|---|---|
+| Cantera 3.2.0 load, species/reaction counts, phase, thermo + transport present | PASS |
+| every reaction element-balanced (worst imbalance 0.0) | PASS |
+| species and reaction sets are subsets of the parent; no new reaction, no stoichiometry change | PASS |
+| every retained reaction's rate data and collider efficiencies verbatim (only `efficiencies` entries of *removed* species pruned) | PASS |
+| NASA-7 thermo of every retained species bitwise identical to the parent (rtol 1e-9 test) | PASS |
+| numeric spot-check, 6 cases (CH4, C2H4, C4H10, C6H6, C6H5CH3, CH3OH), parent and 50-species member, independent code path | PASS, relative difference exactly 0 against our CSVs |
+| `deliverables/_ann_*` == the `results/void_fam_*` mechanisms that produced the validation CSVs | PASS |
+| recomputation of our summary statistics | PASS; one boundary case differs in `frac>35%` (189/792 = 0.2386 vs our 188/792 = 0.2374; case `m0140` sits at \|dln tau\| = 0.300101) |
+
+Two findings from that verification that we adopt as caveats:
+
+1. **The 50-species member has a truncated methanol sub-network**: it retains only the 6 CH3O-branch
+   reactions of methanol and loses the whole CH2OH branch (`CH3OH + H/O/OH/CH3 <=> CH2OH + ...`),
+   while the 93- and 59-species members keep 12/12.  The 50-species member should be treated as
+   unqualified for methanol outside the conditions actually tested here.
+2. Losses of parent reactions involving a given fuel in the 50-species member are 48 % for C4H10,
+   41 % for C6H6, 41 % for C6H5CH3 (numbers per fuel in the verification file), consistent with the
+   per-fuel error pattern in section 4.1.
+
+**Revision 2: the two replacement members** (`deliverables/usc2_red_69sp.yaml`,
+`deliverables/usc2_red_63sp.yaml`; `agents/expdata/verify/VERIFY_deliverables.md` "Revision 2",
+`agents/expdata/verify/verify_tables_v2.json`, evidence ids `evidence_1c1a485878be694da0a4d6ac9ed9310a`
+and `evidence_6693ab8645cf7d59b84ebf517ad2da4d`):
+
+| check | verdict |
+|---|---|
+| load, counts 69/522 and 63/461, phase, NASA7 + mixture-averaged transport, no warnings | PASS |
+| 0 unbalanced reactions (worst 0.0); 0 species/reaction keys outside the parent; 0 stoichiometry changes | PASS |
+| retained reactions verbatim vs parent (522/522 and 461/461; 0 rate, 0 efficiency differences) | PASS |
+| NASA-7 thermo bitwise identical to the parent for every retained species | PASS |
+| back-added set exactly as advertised (69sp = 59sp + the 10 named species; 63sp = 50sp + the 13), no precursor reaction lost, +126 / +157 parent reactions re-enabled | PASS |
+| deliverable == `results/red59_bA.yaml` / `red50_bA.yaml` after stripping the `description`/`note` keys | PASS |
+| 4+4 ignition spot-check (incl. C6H6, C6H5CH3, CH3OH) vs our CSVs: rel. diff 0.00000 % | PASS |
+| recomputed ignition statistics equal ours (0.060074/0.232568/0.358593 and 0.110761/0.443803/0.696465) | PASS |
+| recomputed flame means 2.853 % / 4.068 % over 11 fuels, equal to our 2.9 % / 4.1 % | PASS |
+| CH2OH methanol branch restored: 12/12 CH3OH reactions, CH2OH 13/14, CH2* 23/24, CH3O 15/15 | PASS |
+
+This closes the Revision-1 caveat above for the 63-species member (it is the 50-species member's
+successor).  The same verification also gives the per-fuel reaction retention of the delivered
+members (share of parent reactions involving that fuel), which explains the residual flame pattern
+of section 4.2.1: nC4H10 18/18 (69sp) and 10/18 (63sp); C6H6 19/22 and 16/22; C6H5CH3 13/17 and
+10/17; C3H6 28/43 and 26/43; while CH4, C2H6, C3H8, iC4H10 and CH3OH are complete or nearly so.
+
+### 4.6 Flame speeds against experiment (aromatic fuels, states matched exactly)
+
+The only experimental flame-speed data we could obtain anonymously is for benzene and toluene
+(77 points, 1-2 atm, 298-423 K; `agents/expdata/data/exp_flamespeed.csv`).  We ran a container job
+(`job_0f8a50f1564b077f61f3f60a`) over the 22 states that coincide **exactly** with 21 of those
+points (phi = 0.70...1.40, 1 atm, 298 K), for the parent and the three members, so no interpolation
+is involved; `results/remote_flame_arom.csv`, analysis `scripts/flame_exp_compare.py`.
+
+| mechanism | n states | mean \|Su/Su_exp - 1\| | p95 | max | failed cases |
+|---|---|---|---|---|---|
+| USC-II parent | 21 | 8.4 % | 10.8 % | 16.0 % | 0/22 |
+| red-93sp | 21 | 9.9 % | 12.7 % | 15.9 % | 0/22 |
+| red-59sp | 16 | 94.0 % | 98.7 % | 99.0 % | 5/22 (CanteraError) |
+| red-50sp | 16 | 94.6 % | 98.6 % | 99.3 % | 5/22 (CanteraError) |
+
+Three things follow.  (i) The **parent mechanism itself is 8-16 % away from the measured aromatic
+flame speeds** at 1 atm/298 K in this solver setup; that is the correct baseline for "how much error
+the reduction adds".  (ii) The 93-species member adds ~1.5 percentage points to that baseline
+(9.9 % vs 8.4 % mean) and is never worse than the parent by more than ~4 points of relative error -
+this is the reduction we would stand behind.  (iii) The 59- and 50-species members are not
+marginally but *qualitatively* wrong: flame speeds collapse by 90-99 % and 5 of the 22 cases do not
+even solve (CanteraError), which is consistent with the local 11-fuel table and with the
+independent container run of section 4.2.
+
+Container cost per flame case in a 64-way batch: parent 73 s, red-93sp 57 s, red-59sp 89 s
+(dominated by the failed/near-extinguished cases), red-50sp 55 s.
+
+### 4.7 Consolidated complexity/accuracy trade-off, cross-machine check, and comparison with downloaded mechanisms
+
+Everything below is measured on the same 792-case held-out ignition matrix and the same flame
+settings; `REPORT_TABLES.md` (regenerated by `scripts/final_tables_v2.py`) is the machine-generated
+version of these tables - it supersedes the earlier `scripts/final_tables.py` output, whose flame
+sections described the pre-repair 50/59-species precursors under the nicknames `red50`/`red59`.
+
+| mechanism | species | reactions | ignition mean / p95 / max \|dln tau\| | ignition > 35 % | flame mean / max \|dSu/Su\| (11 fuels, phi=1) | 792-case coverage |
+|---|---|---|---|---|---|---|
+| USC-II parent | 111 | 784 | 0 / 0.0002 / 0.0012 | 0 % | 0 / 0 | 792/792 |
+| **usc2_red_93sp** | **93** | **714** | **0.0045 / 0.037 / 0.079** | **0 %** | **0.56 % / 2.3 %** | 792/792 |
+| **usc2_red_69sp** | **69** | **522** | **0.060 / 0.233 / 0.359** | **1.1 %** | **2.9 % / 11.5 %** | 792/792 |
+| **usc2_red_63sp** | **63** | **461** | **0.111 / 0.444 / 0.697** | **9.8 %** | **4.1 % / 11.5 %** | 792/792 |
+| `results/red50_bA_p6.yaml` (repair, *not delivered*) | 69 | 517 | 0.108 / 0.434 / 0.696 | 9.5 % | 2.93 % / 9.44 % | 792/792 |
+| `results/red59_bA_p6.yaml` (repair, *not delivered*) | 75 | 590 | 0.052 / 0.233 / 0.368 | 1.1 % | 2.26 % / 9.44 % | 792/792 |
+| `results/rxn_final_r1.yaml` (attempt, *not delivered*) | 69 | 415 | 0.092 / 0.281 / 0.659 | 3.8 % | 14.3 % / 25.6 % | 792/792 |
+| red-59sp (documented failure) | 59 | 396 | 0.087 / 0.304 / 0.521 | 5.2 % | 88 % / 97 % | 792/792 |
+| red-50sp (documented failure) | 50 | 304 | 0.187 / 0.542 / 1.025 | 23.7 % | 87 % / 97 % | 792/792 |
+| GRI-Mech 3.0 (downloaded) | 53 | 325 | 1.48 / 2.52 / 3.99 | 79 % | not run | 360/792 |
+| San Diego 20161214 (downloaded) | 59 | 271 | 1.18 / 2.01 / 4.63 | 70 % | not run | 504/792 |
+| FFCM1_Red (downloaded) | 21 | 124 | 1.92 / 2.00 / 2.33 | 99 % | not run | 72/792 |
+| DRM19 (downloaded) | 21 | 84 | 1.90 / 2.23 / 6.43 | 91 % | not run | 144/792 |
+
+Reading of this table:
+
+* The three delivered mechanisms cover **all 792 cases** (every fuel ignites) - the downloaded
+  reduced mechanisms for similar fuels cover only 9-64 % of them, because they simply do not contain
+  the larger/aromatic/methanol fuel chemistry (their species/reaction counts in the table are their
+  own published ones, verified by Cantera in `agents/expdata/data/literature_mechanisms/README.md`).
+  On the cases they *can* represent they also deviate from the USC-II parent by factors of 3-7
+  (mean |dln tau| 1.2-1.9), i.e. they are different mechanisms for a different purpose, not
+  drop-in replacements for this 11-fuel palette.  The comparison is therefore about **coverage and
+  fidelity to the parent**, not about a like-for-like accuracy contest.
+* **93 -> 69 species costs 2.3 percentage points of flame accuracy and 5.5 points of mean ignition
+  error, and buys a 27 % smaller reaction network** (714 -> 522).  69 -> 63 species doubles the
+  ignition error again (0.060 -> 0.111) for another 12 % of reactions; that is the point where the
+  curve flattens out.
+* The two members that pass ignition but fail flames (59 / 50 species) are *not* delivered; their
+  numbers are kept so that the failure is quantified rather than hidden.
+* **Which file to use.**  For the tested 1-atm flame envelope all three members are usable (mean
+  0.6 / 2.9 / 4.1 %), but the smaller members degrade in the low-temperature, high-pressure, lean
+  corner (5 atm, 300 K, phi = 0.7: 93sp within 1-4 %, 69sp/63sp -29 % on C3H6).  The 93-species
+  member is therefore the recommended file whenever lean/high-pressure/low-temperature flames
+  matter; the 69- and 63-species members are the compact options for the tested 1-atm envelope and
+  for stoichiometric conditions at 5 atm.
+* The two repair candidates (section 4.2.3) sit at the same species counts as the delivered 69sp/63sp
+  members but trade ignition fidelity for flame robustness: `red50_bA_p6` (69 sp / 517 rxn) has the
+  ignition accuracy of the 63-species member (0.108 vs 0.111 mean) and the flame accuracy of the
+  69-species member (2.93 % vs 2.85 % mean at phi = 1, and +0.9 % vs -28.6 % at the lean 5-atm
+  corner); `red59_bA_p6` (75 sp / 590 rxn) recovers the 69-species member's ignition accuracy
+  (0.052) at the same flame level but costs six more species than p6.
+* At a *fixed* species count (69), the reaction axis is expensive: -25 reactions (5 %) doubles the
+  mean flame error (2.9 % -> 5.0 %), -107 reactions (20 %) multiplies it by five (14.3 %), while
+  cutting six species (69 -> 63, 461 reactions) costs only +1.2 points (section 4.2.2).  The
+  delivered set therefore keeps the parent's reaction counts at each species level; the reduced
+  reaction-network candidates are reported as attempts, not as Pareto improvements.
+
+**Cross-machine reproducibility.**  The same 792-case matrix was run in the 64-core container
+(`remote/validate_all.py`, job `job_dcac42091520c5d1b8c365c0`) against the local 2-core reference:
+parent mean |dln tau| = 0.0000, p95 = 0.0002, max = 0.0012; the members reproduce the local summary
+statistics to all printed digits.  The container and local implementations therefore agree, so the
+ignition numbers are a property of the mechanisms, not of one machine.
+
+**Cost.**  The cleanest cost proxy is the pooled container job (`results/val_summary.json`), in
+which the parent and every candidate ran the same 792 ignition cases in one job at 56 workers, so
+wall-time ratios are measured on the same machine under the same load: parent 1.00, 93sp 0.80,
+69sp 0.57, 63sp 0.54, 59sp 0.39, 50sp 0.30, GRI-Mech 3.0 0.20, San Diego 0.25, DRM19 0.07,
+FFCM1_Red 0.03.  Ignition cost therefore falls roughly like the reaction count, and the delivered
+members cost 0.54-0.80 of the parent (i.e. the saving is real but modest).  The separate local
+2-core runs give a lower ratio for the 93sp member (0.38 of the parent) - separate runs on a loaded
+shared box are only good to a factor ~2, so these numbers should be read as orders of magnitude,
+not as benchmarks.  For flames, the container sweep (all mechanisms in one job) gives parent 73 s,
+93sp 57 s (0.78x), 59sp 89 s, 50sp 55 s per case at phi = 1, 300 K, 1 atm.
+The whole run - two selection stages, every validation, every failed attempt and the two
+researchers' jobs - consumed **1 123 072 of the 1 843 200 allowed core-seconds (61 %)**; the
+largest single loss was the corrected-convention species stage killed by its own 88.8-minute
+reservation (340 992 s, section 6), and roughly 2 000 core-seconds went to four jobs that died on
+environment bugs within seconds.
+
+## 5. Limitations
+
+1. **Probe/validation mismatch in provenance.**  The delivered family was *selected* with a probe
+   set whose mixtures used the wrong convention (section 3.2); its acceptance evidence is therefore
+   void.  Its accuracy is instead measured on the correct-convention held-out matrix, flames and
+   experimental points, which is what section 4 reports.  The corrected-convention re-run
+   independently accepted 111 -> 103 -> 93 species with probe errors <= 1.2e-3 before it was killed
+   by its 88.8-minute reservation (section 6), i.e. the conservative part of the family is
+   corroborated by a valid probe, but the aggressive steps (-> 59, -> 50 species) are not.
+2. **The selection loop is ignition-only; the flame test is outside it.**  Species removal was
+   ranked and accepted on ignition delays only, and section 4.2 shows that this criterion does not
+   transfer: members below ~70 species pass ignition and fail flames catastrophically.  The
+   delivered 69- and 63-species members were repaired *afterwards* by re-adding a chemically chosen
+   block of ten (resp. thirteen) parent species; the final flame check was applied to the repaired
+   candidates, not inside the ranking, and no automated sensitivity search was used to choose the
+   back-added set.  The reaction stage (section 4.2.2) has the same defect: its acceptance box is an
+   ignition-probe box, and the mechanism it produced (69 sp / 415 rxn) passes that box while running
+   14 % low on flames.  A proper fix - a flame-aware (or flame-surrogate) acceptance criterion inside
+   the loop - was not affordable here: one flame evaluation costs ~0.5-10 minutes of wall time per
+   case against ~0.02 s for one ignition case, i.e. 3-4 orders of magnitude, and the greedy loop
+   evaluates of order 10^3 candidate batches.
+3. **Observable definitions.**  Our ignition delay is a 0-D constant-volume max-dT/dt delay; shock
+   tubes and RCMs define delays from pressure rise or OH*, which alone can differ by tens of
+   percent.  Experimental comparison is therefore reported *relative to the parent's own
+   deviation*.
+4. **Flame validation is narrower than the ignition validation, and it has a hard corner.**  The
+   member flame speeds are measured at 1 atm against the container parent matrix: 11 fuels at
+   phi = 1, 300 K locally and the delivered 69/63-species members over the 66-case matrix
+   11 fuels x phi {0.7, 1.0, 1.3} x T_in {300, 500} K; at 5 atm, the 93- and 69-species members
+   over 11 fuels at phi = 1, 300 K, plus a targeted lean corner (C3H6 / C4H81 / C6H5CH3, phi = 0.7,
+   300 K, all three members).  **That corner exposes a real limitation: the 69- and 63-species
+   members under-predict lean C3H6 at 300 K / 5 atm by ~29 %, so they are qualified only for the
+   tested 1-atm flame envelope (worst case ~23 %) and for phi = 1 at 5 atm; for low-temperature,
+   high-pressure or lean conditions the 93-species member should be used.**  No member was
+   validated above 5 atm.  The comparison against *experiment* is limited to C6H6/C6H5CH3
+   (section 4.6), because no anonymous experimental laminar-flame-speed source was found for the
+   other fuels (ReSpecTh's file endpoint returned HTTP 401).  Flame transport uses the parent's
+   mixture-averaged parameters, unfitted, Soret off.
+5. **No low-temperature chemistry validation.**  The probe and held-out matrix are at T >= 950 K
+   (the matrix at T >= 1000 K).  USC-II has no low-temperature (NTC) chemistry, so this is not a
+   loss for this mechanism, but nothing here validates 600-900 K behaviour or negative-temperature
+   coefficient effects.
+6. **Flame set is thin**: phi = 1 for 11 fuels at 300 K/1 atm locally, the delivered 69/63-species
+   members over the 66-case 1-atm matrix (phi {0.7,1,1.3} x T_in {300,500} K), the 5-atm phi = 1
+   subset and the lean 5-atm corner, plus the aromatic phi sweep; transport data (mixture-averaged,
+   Soret off) is the parent's, unfitted.  Speciation-sensitive targets (soot, PAH, NOx, ignition
+   behind reflected shocks at high dilution) were not measured.
+7. **No speciation/soot/PAH validation**, and no species-by-species comparison was attempted; the
+   task asks for macroscopic observables, and the removed species are exactly those whose
+   concentrations are not measured here.
+8. **Resource-limited**: one probe set, one greedy path, one tolerance box per stage; no global
+   optimisation, no multi-start, so this is not evidence of optimality.
+
+## 6. Failures and negatived results (honest log)
+
+1. Cantera wheels installed outside the workspace do not persist in this sandbox; the workspace
+   `pylibs/` target plus offline wheel extraction in the container fixed it.
+2. The first remote job failed because queue inputs are copied preserving relative paths; `argv`
+   must use the same relative path.
+3. **DRGEP is useless on USC-II**: the interaction coefficient saturates (110/111 species >= 1e-3,
+   most exactly 1.0) because of the dense graph and third-body hubs.  The reduction engine was
+   redesigned around measured single-removal errors.
+4. Third-body subtleties broke early candidate mechanisms: a species that appears only in
+   third-body *efficiency* lists must not delete the reaction when removed, and Cantera parses
+   e.g. `C6H5CH2OH + H <=> C6H5CHO + H2 + H` as a three-body reaction with the specific collider H,
+   making `H`, `OH`, `HCO`, `H2`, `H2O`, `CO2` structural.  Both bugs were fixed and re-verified.
+5. `rank_species()` originally removed all species except the candidate list, so the first ranking
+   pass reported total failure for every candidate.
+6. The flame driver first equilibrated the *cached* `Solution` in place, corrupting the unburned
+   state (Su = 3.5 cm/s for CH4/air phi = 1); fixed - the corrected driver gives
+   36.85 cm/s (literature 36-38 cm/s) and T_ad = 2230 K.
+7. `nC4H10` is not a USC-II species name (it is `C4H10`); early case lists raised Cantera errors.
+   Fuel aliases are now mapped centrally in `kinlib.canon_fuel`.
+8. **Wrong mixture convention**: a first species-elimination run used `X_O2 = 1/phi`, i.e. every
+   case ~`stoich_O2` times richer than labelled.  Its family is void (`results/void_fam_*.yaml`,
+   registered as evidence `evidence_dc79b06c`) and is used only as an unvalidated fallback and as a
+   comparison point; the corrected re-run replaced it.
+9. The first flame job (harness, 66 cases) produced no data: `multiprocessing.TimeoutError` is not a
+   subclass of the builtin, so the watchdog exception escaped, and every child re-extracted the
+   wheels into the same directory, racing and corrupting imports.  Fixed (flat scheduler, parent
+   extracts once, subprocess kill on timeout).
+10. The harness ignition matrix (`agents/harness/parent_ign.csv`, 792 cases, 610 ok / 172 equil /
+    10 noign) was built with the literal `X_O2 = 1/phi` convention and is therefore a *rich-shifted*
+    stress set; it is not used as the primary reference.  Our own reference
+    (`results/ref_ign_matrix.csv`, 792/792 ignite) is used instead.
+11. **The corrected-convention species stage was killed by its reservation** after 88.8 min having
+    accepted only two steps (111 -> 103 -> 93 species, probe mean |dln tau| = 1e-4 / 1.2e-3); the
+    family files were not archived (only its stdout log).  Its ranking pass (108 candidates, 378 s)
+    and the two accepted steps are the evidence that survives.  The affected mechanism family is
+    therefore the corrected-convention prefix of 93 species, which we could not extend.
+12. **Container entry point bug (two jobs lost in 6 s each):** `remote/validate_all.py` and
+    `remote/full_validation.py` imported numpy *before* `remote_env.setup()` had extracted the
+    offline wheels onto `sys.path`, so both died with `ModuleNotFoundError: numpy`; and a first
+    attempt to run `scripts/local_flame_table.py` on the container used `python3 remote_env.py &&
+    ...`, which only fixes the sys.path of the helper process.  Fixed with `remote/run_flame_table.py`
+    (setup() in-process, then runpy) and by moving the numpy import after setup(); the wasted
+    charge was 384 + 256 core-seconds.  The same trap fired once more in the final revision: a job
+    that started with `python3 scripts/reduce_engine.py` died with `ModuleNotFoundError: numpy`
+    (448 core-seconds), which is why `remote/run_reduce.py` now exists.
+13. **Local background jobs die with their shell session** (the sandbox tears down the process group):
+    the first local 4-mechanism flame table started with `nohup ... &` produced an empty file and no
+    rows after 50 minutes.  Long local runs must be started inside a persistent session.
+14. The reservation-based kill (6.11) was mitigated by adding `--deadline-s` to
+    `scripts/reduce_engine.py::greedy()`: the greedy loop now stops cleanly at a wall-clock budget and
+    still writes its mechanism and log, so a bounded job settles normally and its outputs are archived.
+15. **Missing dependency in a job's input list**: the first pooled-validation job (7957382) died in
+    4 seconds with `ModuleNotFoundError: No module named 'fastmech'` because `scripts/fastmech.py`
+    was not declared as an input; the reaction-stage job died twice (7957480, 7957380) - first
+    because `fastmech.write_filtered()` asserted that the phase species list must change, which is
+    false for reaction-only removals (fixed: the list is now allowed to be unchanged, with a
+    quote-aware count guard instead of an assertion) and then because that guard counted quoted
+    species names such as `'C5H5O(2,4)'` as several tokens (fixed with a quote-aware parser).
+    Total wasted charge: ~1000 core-seconds.
+17. **Reaction-network reduction passed ignition and failed flames** (section 4.2.2): the stage
+    accepted 15 batches on the 77-case ignition probe (69 species / 522 -> 415 reactions) and stopped
+    at its deadline, but the resulting file is 14.3 % (mean) / 25.6 % (worst) slow across all 11
+    fuels on the held-out flame table, versus 2.9 % / 11.5 % for the 522-reaction member it was built
+    from, while its held-out ignition error grew only from 0.060 to 0.092.  It is kept as an
+    audit-trail artefact (`results/rxn_final_r1.yaml`) and is not delivered.  The run was also
+    wasteful in one respect: the accepted intermediate states (512 / 486 / 470 reactions) were not
+    declared as job outputs, so the only recoverable evidence of the smaller cuts is the log.
+    A follow-up experiment protected the core radical pool (14 species, 27 eligible reactions) and
+    the small radicals (8 species, 46 eligible) and reached only 497 and 482 reactions, with flame
+    errors of 5.0 % and 5.1 % mean - both dominated by the delivered 63-species / 461-reaction
+    member; they are kept as `results/rxn_prot{A,B}.yaml`.  One further job (7958131) was wasted on
+    the numpy-before-setup trap (448 core-seconds, item 12).
+18. 45 experimental points were excluded from the comparison for physical implausibility
+    (section 4.4); the parent itself deviates from the remaining experimental points by a factor
+    ~2.5 on average, which is reported as a property of the parent mechanism, not of the reduction.
+19. **The compact members fail one corner of the flame envelope - found by a targeted check, not by
+    the selection loop.**  The 66-case 1-atm matrix showed that the largest errors sit on the lean
+    side; a 9-flame check at the opposite pressure corner (5 atm, 300 K, phi = 0.7,
+    `results/red_5atm_lean.csv`, job 7958261) then showed that the 69- and 63-species members are
+    ~29 % low on lean propene there, while the 93-species member is within 1 %.  This invalidated the
+    earlier, too-optimistic sentence "the delivered members stay in the few-per-cent range at 5 atm
+    as well" (the 11-case phi = 1 subset was not representative), so section 4.2.1 and limitation 4
+    now state the qualified envelope explicitly.  Cost of finding it: 10 304 core-seconds.
+20. **A validation job compared a mechanism against itself.**  The p6-repair job 7958474 was
+    submitted with two mechanisms and no parent, and the driver uses the *first* mechanism as the
+    flame reference when none is given: `red50_bA_p6` therefore came out with a flame error of
+    exactly 0 % (self-comparison) and `red59_bA_p6` only relative to `red50_bA_p6`.  The ignition
+    half of that job is valid (the ignition reference is a separate file), and the flame half was
+    re-run as job 7958485 with the parent first in the list and all six mechanisms in one driver.
+    Cost of the wasted half: 3 584 core-seconds; the mistake is the reason the p6 flame numbers in
+    section 4.2.3 are quoted from job 7958485, not from 7958474.
+
+## 7. Files (deliverables first)
+
+Mechanisms (Cantera YAML, reduced from USC-II by this run):
+
+**Delivered mechanisms** (Cantera YAML; each carries the description block used below; kinetics are
+byte-identical to the sources named in the table - verified by a comment-stripped diff and,
+independently, by `agents/expdata/verify/VERIFY_deliverables.md`):
+
+| file | species | reactions | ignition mean / p95 / max | flame mean / max | source file | sha256 (first 16) |
+|---|---|---|---|---|---|---|
+| `deliverables/usc2_red_93sp.yaml` | 93 | 714 | 0.0045 / 0.037 / 0.079 | 0.54 % / 2.3 % | `results/void_fam_02.yaml` | 4505053b2added19 |
+| `deliverables/usc2_red_69sp.yaml` | 69 | 522 | 0.060 / 0.233 / 0.359 | 2.9 % / 11.5 % | `results/red59_bA.yaml` | 1a06e8cdfbe1b7e3 |
+| `deliverables/usc2_red_63sp.yaml` | 63 | 461 | 0.111 / 0.444 / 0.697 | 4.1 % / 11.5 % | `results/red50_bA.yaml` | 6564dcae49eaf13d |
+
+Full sha256 of the three delivered files (`results/deliverable_hashes_v2.json`; the two new files
+were independently re-hashed by `expdata`):
+
+```
+usc2_red_93sp.yaml  4505053b2added194e60bbdd6162f5ce4de490fe03759e370a00fea154d5c254  93 sp / 714 rxn
+usc2_red_69sp.yaml  1a06e8cdfbe1b7e3cc70c5716d1f0224064bba9bfd3e65358f98e12d25315e81  69 sp / 522 rxn
+usc2_red_63sp.yaml  6564dcae49eaf13dbf7a360681f39fe7029b9ee06a6114b2ca84dfbcd3b06073  63 sp / 461 rxn
+```
+
+Audit-trail mechanisms that are *not* part of the delivery: `results/void_fam_{05,08}.yaml` and
+`deliverables/usc2_red_{59,50}sp.yaml` (ignition-accurate, flame-collapsed), `_ann_93.yaml`
+(pre-annotation 93-species copy), `results/rxn_final_r1.yaml` (69 sp / 415 rxn, reaction-stage
+candidate, 14 % slow on flames), `results/rxn_prot{A,B}.yaml` (flame-protected reaction cuts) and
+`results/red50_bA_p2.yaml` / `results/red50_bA_p6.yaml` / `results/red59_bA_p6.yaml` (the
+six-species repair candidates of section 4.2.3).
+
+**A compact alternative worth naming.**  `results/red50_bA_p6.yaml` (69 sp / 517 rxn) is the file
+to use when the lean / elevated-pressure corner matters more than the last six species: it keeps
+the 63-species member's ignition accuracy (mean |dln tau| 0.108 vs 0.111, 9.5 % vs 9.8 % of cases
+above 35 %) and stays close to the parent on every flame case measured (2.93 % mean at phi = 1,
++0.9 % on lean propene at 5 atm, where the delivered compact members are 22.6-28.7 % low).  It is
+not one of the three delivered files only because the delivery is capped at three mechanisms and
+the delivered 63-species member documents the smallest network achieved; all of its evidence is in
+sections 4.2.1 and 4.2.3.
+
+`deliverables/README.md` describes the three files for a reader who has only the YAMLs;
+`deliverables/_desc_{93,69,63}.txt` hold the description texts; `deliverables/_ann_*.yaml` and
+`usc2_red_{59,50}sp.yaml` are the survivors of the earlier (flame-failing) candidate set, kept only
+as an audit trail and *not* part of the delivery.
+
+Supporting files: `scripts/` (reduction engine, validation drivers, analysis), `remote/` (remote
+queue drivers), `data/` (case sets and references), `results/` (all raw outputs and summaries),
+`agents/harness/` and `agents/expdata/` (researcher deliverables: independent harness, parent
+reference, mechanism checks, experimental datasets with sources).  `README_REPRO.md` holds the
+exact commands and the job log.
+
+## 8. Reproduction
+
+See `README_REPRO.md`: environment (workspace-local Cantera 3.2.0 / offline wheels in the
+container), the exact case-generation commands, the reduction commands with their tolerance boxes,
+the validation commands, and the table of remote job ids with their observed outcomes.

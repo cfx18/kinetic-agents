@@ -1,0 +1,625 @@
+# Autonomous skeletal reduction of USC-Mech II: quantitative accuracy/complexity trade-off
+
+Principal investigator run, 2026-09-16.  All numbers below are produced by the
+scripts in `src/` from the raw JSON inputs in `results/`, `cases/` and `mech/`.
+Nothing in the parent mechanism was refitted: **every reduced mechanism is a
+strict sub-set of the supplied parent (species deleted, and with them the
+reactions that involve them, plus an optional reaction-only trimming pass)**.
+
+## 0. Summary
+
+* Parent: 111 species / 784 reactions (Cantera 3.2.0 reading of the supplied
+  `parent.yaml`).
+* Reduction targets macroscopic observables only: constant-volume adiabatic
+  **ignition delay** and 1-D freely propagating **laminar flame speed**.
+* Reduction criteria tested: DRGEP error propagation, flux participation,
+  leave-one-out (LOO) observable sensitivity, and a **greedy observable-driven
+  species add-back** search (the winner).
+* Acceptance tolerances, fixed before the sweep and referenced to the parent
+  mechanism: max |Δτ/τ| ≤ 30 % and max |Δs_L/s_L| ≤ 10 % over 401 cases, with
+  **zero** cases that ignite/burn in the parent failing in the reduced
+  mechanism.
+* Results are summarised in §6 and §7.  The best mechanisms found and the
+  mechanisms actually submitted are listed in §7: a **66-species /
+  327-reaction** primary set (45 species and 457 reactions removed, −40.5 % /
+  −58.3 % relative to the parent, worst case 28.6 % ignition and 6.9 % flame
+  error, zero hard failures), a 73-species conservative set and a 60-species
+  aggressive set.
+* The reaction network can be cut much further than the species set: 135 of the
+  462 reactions of the 66-species set (29 %) are individually inactive in every
+  sampled state (activity ≤ 0.022 of the maximum reaction flux, §7.1) and their
+  removal does not degrade any validated observable.
+* Experimental validation: ignition against 185 hydrocarbon (set B) and 146
+  usable H₂/O₂ (set A) shock-tube points, and flame speeds against the 70
+  archive points of set D (benzene/CH₄/H₂, 1 atm, 7 datasets; set C is the
+  φ-resolved benzene sub-set of the same measurements).  All of these conditions
+  lie outside the 401-case design matrix, and the delivered primary mechanism
+  stays inside both tolerances on the measured flame points too.
+* Three independent negative/limiting results are reported honestly in §8:
+  DRGEP collapses in this mechanism/case configuration, the smallest
+  sub-40-species sets silently lose the equilibrium products, and the available
+  public experimental data cannot discriminate the reduction in the H2/O2
+  subset while the new hydrocarbon data sets (ignition and benzene/air flame
+  speeds) do.
+
+## 1. Scope and inputs
+
+| item | value |
+|---|---|
+| parent mechanism | `mech/parent.yaml` (byte-identical copy of the supplied `parent.yaml`) |
+| parent size | 111 species, 784 reactions (Cantera 3.2.0) |
+| toolchain | Cantera 3.2.0 (Python 3.12), numpy, PyYAML; executed locally (2 cores) and on a 64-core remote node with no internet (wheels shipped with each job) |
+| reduced mechanisms | strict sub-sets; thermo, transport and rate parameters identical to the parent |
+| evaluation budget | ≈ 1.28 × 10^6 CPU-seconds of remote 64-core time charged (of which ≈ 8.5 × 10^5 was lost to two failed reaction-trimming jobs, §8.6), plus local CPU time |
+
+Three kinds of numbers are kept strictly apart throughout this report:
+
+1. **experimental observations** — digitised shock-tube ignition delays retrieved
+   from the public ReSpecTh/SciExpeM archive on Zenodo (§4);
+2. **parent-mechanism reference predictions** — the only reference used for all
+   reduction error metrics (§3);
+3. **own estimates** — solver outputs (τ, s_L, equilibrium temperatures) computed
+   in this run.
+
+## 2. Methods
+
+### 2.1 Observables
+
+* **Ignition**: constant-volume, adiabatic, homogeneous reactor.
+  `τ` = time of maximum dT/dt, obtained from the integrator trace with quadratic
+  interpolation around the peak (integrator `rtol=1e-9`, `atol=1e-20`,
+  `max_time_step=1e-3`).  A second definition, `τ_cross` = time at which T first
+  exceeds T₀ + 400 K, is stored for every case as a consistency check.
+  Numerical robustness: changing `rtol` from 1e-7 to 1e-11 moves τ by < 0.01 %
+  (checked on the parent).
+* **Flame**: laminar speed of a freely propagating 1-D flame, mixture-averaged
+  transport, no Soret, grid refinement ratio/slope/curve = 4/0.3/0.5 with
+  Cantera automatic re-gridding.  Converged grid sizes are 50–70 points.
+
+Error metrics (parent = reference):
+`e_ig = 10^(log10 τ_red − log10 τ_parent) − 1` and `e_fl = s_L,red/s_L,parent − 1`.
+A case where the parent ignites but the reduced mechanism does not is counted as
+a **hard failure** (`inf`) and reported separately, never averaged away.
+
+### 2.2 Case matrix (401 parent cases)
+
+* 10 fuels: H2, CH4, C2H4, C2H6, C3H8, n-C4H10, i-C4H10, C6H6, toluene,
+  50/50 H2/CO syngas (all in "air", N2/O2 = 3.76).
+* **Ignition (380)**: φ ∈ {0.5, 1, 2} × T ∈ {1000, 1250, 1600, 2000} K ×
+  P ∈ {1, 10, 30} atm, plus 20 Ar-diluted shock-tube-style cases
+  (φ ∈ {1,2}, P ∈ {1,10} atm, T = 1400 K).
+* **Flames (21)**: 7 fuels (H2, CH4, C2H4, C2H6, C3H8, n-C4H10, syngas) ×
+  φ ∈ {0.6, 1.0, 1.4}, 1 atm, 300 K.
+* One parent case (`ig_CH4_phi2_T1000_P1`) does not ignite in the parent itself
+  and is excluded from all error statistics (380→379 usable ignition cases).
+* **Train / held-out split** (used only where a ranking criterion needs a
+  sub-set): train = φ ∈ {1,2} ∧ T ∈ {1000,1600} K ∧ P ∈ {1,30} atm, the
+  Ar-diluted cases, and the φ ∈ {1.0,1.4} flames (114 cases); held-out = φ = 0.5,
+  T ∈ {1250,2000} K, P = 10 atm, φ = 0.6 flames.
+
+### 2.3 Experimental data sets
+
+Located through the Zenodo REST API (`q=creators.name:"SciExpeM"`, 1152
+datasets) and parsed from ReSpecTh XML with `src/respecth.py`.
+
+* **Set A — H2/O2 shock tubes**: 23 datasets / 188 points (T = 710–1802 K,
+  P = 1.2–250 atm, Ar and CO2 diluted, OH* d/dt_max criterion; DOIs e.g.
+  10.1016/j.ijhydene.2016.05.118, 10.1016/j.combustflame.2013.05.012,
+  10.1016/j.combustflame.2013.07.011).  45 implausible points (T < 700 K or
+  τ > 10 s) were dropped; three files whose temperature/delay columns are
+  swapped were reinterpreted by magnitude.
+* **Set B — hydrocarbon shock tubes** (new in this run): 16 datasets / 198
+  points found by sweeping 308 SciExpeM XML files — benzene (5 datasets, 73
+  points, 2.44 and 6.2 atm, CH d/dt_max), ethylene (6 datasets, 57 points,
+  1–30 atm) and methane (5 datasets, 68 points, 1–98.7 atm, including CH4/H2
+  blends and CO2 dilution).  File `cases/cases_expt_hc.json`; after the
+  data-quality correction of §4.2 the set used for validation is **15 datasets /
+  185 points** (benzene 4/60, ethylene 6/57, methane 5/68).
+
+* **Set C — benzene/air laminar flame speeds**: 1 dataset / 10 points
+  (ReSpecTh `4733950`, Ji *et al.* 2012), 1 atm, T₀ = 353 K, φ = 0.7–1.5.
+  These conditions are outside the 401-case matrix and were run **after** the
+  mechanisms were frozen, as an out-of-sample flame check (§4.4).  File
+  `cases/cases_flame_exp.json`.
+* **Set D — multi-fuel archive flame speeds**: 7 datasets / 70 points (H₂ 53,
+  benzene 10, CH₄ 7) at 1 atm, T₀ = 298–413 K, compositions taken verbatim from
+  the ReSpecTh records; every species of each mixture exists in USC-II, and all
+  conditions lie outside the 401-case matrix (§4.5, `src/lbv.py`).  File
+  `cases/cases_flame_exp3.json`.
+
+For every experimental ignition point the **same 0-D constant-volume solver** is
+used as for the parent reference; measured and computed delays use different
+criteria (OH*/CH d/dt_max in the shock tube vs max dT/dt here), so the
+comparison is a diagnostic of model error, not a like-for-like measurement.
+
+### 2.4 Reduction strategies compared
+
+1. **DRGEP** (Pepiot-Desjardins & Pitsch): `r_AB = |Σ_i ν_A,i q_i δ_B,i| /
+   max(Σ_i |ν_A,i q_i|, P_A)` with max-product path propagation; importance
+   `ε_A = max_B R_AB` over target species (fuels + O2), aggregated over sampled
+   states by **maximum** (the classical choice).
+2. **Flux participation** `f_A = Σ_i |ν_A,i q_i|`, max over 2487 sampled states
+   taken from the parent trajectory (22 sample times per ignition case,
+   train cases only).
+3. **LOO observable sensitivity**: for each removable species, build the
+   mechanism without it and record the largest relative observable change over
+   a case sub-set.  This targets exactly the validated quantities.
+4. **Greedy observable-driven add-back** (final design method): starting from a
+   base set that is too small, repeatedly add back the single removed species
+   that most reduces the worst-case *normalised* error
+   `J = max(max|e_ig|/0.30, max|e_fl|/0.10)` (a hard failure adds 100).
+   Two-stage search: all candidates are screened on 36 worst-case ignition
+   cases, the best 6 are re-evaluated on a 126-case probe (110 ignition +
+   16 flames) before acceptance.  Code: `src/greedy_search.py`.
+5. **Reaction-level trimming** (`src/reaction_trim.py`): with the species set
+   frozen, every reaction is screened one at a time on a cheap probe; reactions
+   whose individual removal costs < 0.02 in J are removed as a batch and the
+   batch is re-validated on the full probe, with bisection if the combined
+   effect exceeds 0.05.
+
+### 2.5 Acceptance tolerances (fixed before the sweep)
+
+* ignition: max |Δτ/τ| ≤ 30 % over all non-failed cases, median ≤ 10 %;
+* flame: max |Δs_L/s_L| ≤ 10 % (numerical grid uncertainty on s_L is ≈ 2 %, see §5);
+* no new hard failures (cases that ignite or burn in the parent must not fail);
+* element balance and thermodynamic data of retained species unchanged.
+
+These levels are of the order of the facility-to-facility scatter of shock-tube
+ignition data (≈ 20–30 %) and of laminar flame-speed measurements (≈ 5–10 %),
+i.e. they are intended to be "useful accuracy" rather than "reproduce the
+parent bit-for-bit".
+
+## 3. Parent reference results
+
+* 400/401 cases converge; the single exception (`ig_CH4_phi2_T1000_P1`,
+  φ = 2 methane at 1 atm) does not ignite in the parent within the integration
+  window and is excluded everywhere.
+* τ (max dT/dt) vs τ_cross (ΔT = 400 K): ratio median 1.017, p5–p95
+  0.906–1.139, extreme 0.244–1.218 → the two definitions agree to ≈ ±15 % for
+  most cases; all error metrics in this report use the max-dT/dt definition.
+* Parent wall time: ignition median 0.41 s/case, flame median 44.8 s/case
+  (1488 CPU-s for the whole 401-case matrix).
+* Flame speeds computed for the parent at 1 atm, 300 K, φ = 1 are physically
+  sane: CH4 0.378, C3H8 0.415, n-C4H10 0.420, C2H6 0.461, C2H4 0.659,
+  syngas (H2/CO = 1) 1.168, H2 2.293 m/s.  (Sanity check against widely quoted
+  atmospheric values, not a downloaded data set.)
+* Parent HP-equilibrium temperatures of six fuel/air mixtures are stored in
+  `results/verify_all.json` and used as the thermodynamic reference in §5.
+
+## 4. Experimental comparison
+
+### 4.1 Set A (H2/O2 shock tubes, 188 points)
+
+log10(τ_parent/τ_exp) over 146 usable points: **median +0.036** (parent 8 %
+slow), p10 −0.260, p90 +0.387.  Per-dataset medians range from −0.285
+(zenodo.4639751, 10 atm H2/O2/Ar) to +0.836 (zenodo.4639759); two propane-
+nominal/H2 datasets sit at −0.27/−0.29.  Parent failures (no ignition in the
+integration window) occur in 5 of the 23 datasets, all at high pressure
+(13–40 atm) — these are excluded from the statistics rather than counted as
+errors.
+
+### 4.2 Set B (hydrocarbon shock tubes, 185 points after data cleaning)
+
+This is the data set against which the reduction can actually be judged:
+benzene, ethylene and methane are exactly the fuels whose intermediate chemistry
+is deleted during reduction.
+
+**Data-quality correction.**  Three archived datasets (`4733738`, `4733746`,
+`7771883`) declare their ignition delays in **ms**, but the recorded numbers
+(34–750 and 100–1765) sit in exactly the same numerical range as sibling
+datasets from the same laboratory and identical conditions that declare **µs**
+(`5702629` vs `4733746`: identical mixture AR/O2/C6H6 = 0.8701/0.1257/0.0042,
+same 2.44 atm, delays 35–688 in both files).  Interpreting them literally gives
+delays of 0.03–1.8 s, which contradicts both kinetic expectation and the parent
+mechanism; interpreting them as µs makes `4733746` an exact duplicate of
+`5702629` (13 points removed by the deduplication check) and brings the 16
+archived datasets (15 distinct after the merge) into mutual consistency.  The
+correction is implemented as an explicit flagged rule in `src/expt_hc.py` and
+is the only data manipulation applied.
+
+log10(τ/τ_exp) with the parent mechanism: median **−0.101**, p10 −0.326,
+p90 +0.254 over 185 points; per-dataset medians lie between −0.34 and +0.19
+(worst: zenodo.7772066 CH4/H2/Ar 4 atm, −0.34).  That is, on these
+macroscopic hydrocarbon observables the parent is accurate to ≈ ±0.3 dex.
+
+**Effect of the reduction on the experimental comparison** (all four
+mechanisms reproduce the parent's agreement with the data):
+
+| mechanism | median log10(τ/τ_exp) | p10 | p90 | median |Δlog10 τ| vs parent | p95 | max |
+|---|---|---|---|---|---|---|---|
+| parent | −0.101 | −0.326 | +0.254 | — | — | — |
+| final_66 (66 sp) | −0.120 | −0.336 | +0.238 | 0.010 (2.3 %) | 0.035 (8.4 %) | 0.176 (50 %) |
+| final_73 (73 sp) | −0.114 | −0.334 | +0.248 | 0.005 (1.0 %) | 0.035 (8.4 %) | 0.163 (45 %) |
+| lut50_t327 (66 sp, 327 rx, **delivered primary**) | −0.118 | −0.324 | +0.242 | 0.012 (2.7 %) | 0.036 (8.6 %) | 0.173 (49 %) |
+| final_60 (60 sp) | −0.143 | −0.368 | +0.134 | 0.038 (9.1 %) | 0.228 (69 %) | 0.263 (82 %) |
+
+The delivered 66-species mechanisms therefore reproduce the parent's ignition
+delays to better than 8.6 % on 95 % of experimentally characterised
+hydrocarbon/air (or Ar-diluted) conditions at 0.75–1.9 kK and 1–99 atm.
+
+### 4.3 What the experimental comparison can and cannot show
+
+Because all reduced mechanisms in this study retain the complete H2/O2 sub-set,
+the **H2/O2 experimental comparison is essentially identical for parent and
+reduced mechanisms** (median |Δlog10 τ| ≈ 1e-7 at 73 species): set A documents
+the parent's absolute accuracy, not the reduction error.  Set B is the
+discriminating experimental check and is reported for the delivered mechanisms.
+
+### 4.4 Set C (experimental laminar flame speeds, benzene/air, 1 atm)
+
+This section is the single-laboratory, φ-resolved check; §4.5 extends it to
+seven laboratories and three fuels.  Of 94 SciExpeM laminar-burning-velocity
+datasets in the archive sweep, the benzene data set is ReSpecTh `4733950` (Ji, Dames & Egolfopoulos,
+*Combust. Flame* **159** (2012) 1070, doi 10.1016/j.combustflame.2011.10.017),
+benzene/air, 10 points at φ = 0.7–1.5, 1 atm, T₀ = 353 K, measured s_L
+21.5–54.5 cm/s.  These conditions were **not** part of the 401-case matrix
+(the flame sub-set of §2.2 contains no aromatic fuel), so this is an
+out-of-sample flame check carried out after the mechanisms were frozen
+(job 7959039, cases in `cases/cases_flame_exp.json`).
+
+| φ | measured (cm/s) | parent | lut50_t327 (primary) | lut50_g66 | lut60 | lut40_g60 |
+|---|---|---|---|---|---|---|
+| 0.7 | 35.7 | 30.18 | 28.04 | 27.78 | 28.28 | 26.30 |
+| 0.8 | 44.4 | 38.73 | 36.05 | 35.68 | 35.79 | 34.00 |
+| 0.9 | 50.2 | 46.29 | 42.53 | 42.00 | 42.38 | 40.89 |
+| 1.0 | 53.5 | 50.76 | 47.19 | 46.74 | 47.00 | 44.87 |
+| 1.05 | 54.5 | 51.94 | 48.31 | 47.85 | 48.08 | 46.24 |
+| 1.1 | 53.1 | 52.60 | 48.96 | 48.35 | 48.45 | 46.89 |
+| 1.2 | 49.7 | 50.23 | 47.34 | 46.88 | 46.91 | 45.98 |
+| 1.3 | 41.0 | 43.51 | 42.12 | 41.82 | 41.30 | 40.40 |
+| 1.4 | 30.0 | 35.73 | 32.92 | 32.73 | 34.02 | 29.70 |
+| 1.5 | 21.5 | 25.98 | 24.56 | 24.36 | 24.92 | 21.77 |
+| **mean signed deviation** | — | **+0.0 %** | **−6.5 %** | −7.3 % | −6.4 % | −12.0 % |
+| **mean abs. deviation** | — | 9.4 % | 11.8 % | 12.2 % | 12.4 % | 12.2 % |
+| **max abs. deviation** | — | 20.8 % | 21.5 % | 22.2 % | 20.8 % | 26.3 % |
+| **reduction error vs parent** (mean / max) | — | — | 6.5 / 8.1 % | 7.4 / 9.3 % | 6.6 / 8.4 % | 11.9 / 16.9 % |
+
+Reading:
+
+* The parent itself deviates from the measurement by ~9 % on average
+  (numerical grid uncertainty ≈ 2 %, §5): it under-predicts the near-peak
+  speeds by 3–8 % and over-predicts the lean and rich extremes.  This is the
+  **modelling error of the supplied mechanism**, not of the reduction.
+* Every reduced mechanism is *systematically slower* on benzene flames than the
+  parent; the bias grows with the severity of the reduction (6.5 % for the
+  delivered primary set, 12 % for the 60-species aggressive set).
+* On the reduction criterion that matters here, the delivered primary mechanism
+  stays within the 10 % flame tolerance on this unseen fuel (mean 6.5 %, max
+  8.1 %), and reaction trimming slightly *improves* it relative to the
+  untrimmed 66-species set (7.4 % → 6.5 % mean).
+* The flame case at φ = 1.5 (21.5 cm/s measured) is the hardest: the parent
+  over-predicts by 20.8 %, and the reduced sets by 14–21 %.
+
+### 4.5 Set D (multi-fuel archive flame speeds, 70 points, 1 atm)
+
+Set C covers one laboratory.  Extending the sweep to the whole archive gives 94
+laminar-burning-velocity datasets, of which 73 contain a fuel of this study.
+Among the points that otherwise pass the pressure/temperature/speed filters, 82
+are ammonia-blended (NH₃ is not in USC-II) and most of the rest use He/Ar/CO₂
+dilution.  Requiring 1 atm (0.9–1.1), T₀ = 280–420 K, a physical speed
+(5–400 cm/s), O₂ plus a study fuel,
+and **every species present in the parent mechanism**, leaves **70 points from 7
+datasets** (H₂ 53, benzene 10, CH₄ 7; `cases/cases_flame_exp3.json`).  The
+measured mole fractions are used verbatim as the unburnt mixture, so
+oxygen-enriched and N₂-diluted cases are covered as measured (`src/lbv.py`,
+job 7959143).
+
+| mechanism | reactions | mean abs. dev. vs exp. | bias | max abs. dev. | reduction error vs parent (mean / p95 / max) |
+|---|---|---|---|---|---|
+| parent | 784 | 6.8 % | +1.3 % | 47.0 % | — |
+| **lut50_t327 (primary)** | **327** | **7.7 %** | **+1.5 %** | **46.1 %** | **2.16 / 7.00 / 8.28 %** |
+| lut50_g66 | 462 | 7.1 % | +0.5 % | 47.0 % | 1.39 / 7.90 / 9.28 % |
+| lut60 | 525 | 7.1 % | +0.4 % | 47.0 % | 1.10 / 7.42 / 8.44 % |
+| lut40_g60 | 389 | 7.1 % | −0.2 % | 47.0 % | 2.02 / 11.97 / 16.96 % |
+
+Reading:
+
+* The **delivered primary mechanism stays inside the 10 % flame tolerance on all
+  70 measured points** (mean 2.2 %, worst 8.3 %) — and the worst points are the
+  same benzene flames as in Set C.  The aggressive 60-species set exceeds the
+  tolerance (up to 17 % on benzene), which is consistent with its role.
+* The reduction error is *smallest* where the species set is untouched: H₂
+  flames (53 points) agree with the parent to ≤ 4.6 % for every delivered
+  mechanism, because the whole H₂/O₂ core is retained (§4.3).  The experimental
+  discrimination comes from CH₄ (≤ 4.8 %) and benzene (≤ 8.3 %).
+* **The absolute deviation from experiment is the parent's, not the reduction's.**
+  The parent over-predicts heavily N₂-diluted lean H₂ flames by up to 47 % (its
+  worst points), and the reduced mechanisms inherit that error almost unchanged.
+  Part of it is physical-model error that no species reduction can address: the
+  flame calculations use mixture-averaged transport without Soret, which is
+  known to matter for H₂-rich flames, and the parent mechanism itself was not
+  tuned to these diluted conditions.
+* Numerical convergence: re-solving the three hardest cases with a finer grid
+  (ratio 3 / slope 0.2 / curve 0.3, half the domain) moves s_L by 0.9–1.8 %,
+  i.e. well below the deviations discussed here.
+
+## 5. Verification of the reduced mechanisms
+
+Checks performed for every candidate (`src/verify.py`,
+`results/verify_all.json`, and `verify_final.json` for the delivered set):
+
+Validation of the delivered set was done on the full 401-case matrix (not on the
+search probe): `results/valf/val_final/` and `verify_final.json`.
+
+**Independent re-execution of the delivered files.**  `final/lut50_g66.yaml`
+(the same species set as the delivered primary file, full reaction list),
+`final/lut60.yaml`, `final/lut40_g60.yaml` and `final/lut50_base.yaml` were
+re-run locally (2-core node, same `src/runset.py`, fresh Cantera processes) on a
+7-case sub-set that includes the binding worst case (`ig_C6H6_phi2_T2000_P30`)
+and two flame cases, together with the parent (`results/local_check/`).  Every
+local τ and s_L agrees with the 64-core run to ≤ 1e-4 % (floating-point
+round-off), e.g. the 66-species set gives −28.59 % on the benzene worst case and
+−8.73 % on `fl_C3H8_phi1.4`, exactly the values tabulated below.  The reported
+trade-off therefore reflects the submitted files, not a transient intermediate
+artifact.  The delivered primary file `final/lut50_t327.yaml` was produced and
+validated entirely inside job 7958806 (401-case matrix + `verify_trim3.json` +
+set-B run, driver `run_trim3.sh`); its YAML loads in a fresh Cantera 3.2.0
+process with 66 species / 327 reactions and the same equilibrium temperatures as
+the parent (2350.8 K for benzene/air φ = 1 here), and re-running three of its
+cases locally (including the binding benzene worst case) reproduces the 64-core
+τ to ≤ 1.1 × 10^-6 relative (`results/trim3_local/`).
+
+| check | result |
+|---|---|
+| element balance of every reaction | max relative imbalance **0.0** (exactly balanced) for all sets |
+| number of unbalanced reactions | **0** for all sets |
+| thermo/transport of retained species vs parent | max difference **0.0** (identical NASA polynomials and transport fits) |
+| HP-equilibrium T of 6 fuel/air mixtures | identical to parent (0.0 K) for every delivered mechanism (66, 73 and even 60 species); see below |
+
+**Species floor from thermodynamics.**  Reduced sets are element-conserving by
+construction, but below ≈ 40 species they no longer contain the equilibrium
+products.  At 53–73 species ΔT_eq = 0.0 K; at 43–48 species ΔT_eq = 0.0 K; at
+38 species (lut25) ΔT_eq = −402…−723 K; at 33 species (lut20, loo20) −402…−723 K;
+at 27–31 species (flu20/flu25) −1203…−1849 K (H2/air φ = 1 equilibrium drops
+from 2833 K to 985 K).  Consequently **no mechanism below ≈ 43 species is
+recommended for any use**, even when its ignition/flame errors look tolerable:
+it is no longer the same physical system.
+
+## 6. Accuracy / complexity / cost trade-off
+
+Full table: `results/tradeoff.md` (all 22 evaluated sets × 401 cases).  Cost
+columns are summed CPU-seconds for the 401-case matrix on the 64-core node.
+
+| mechanism | species | reactions | ig max % | ig p95 % | ig med % | fl max % | ig fail | fl fail | med ign/CPU s | med flame/CPU s |
+|---|---|---|---|---|---|---|---|---|---|---|
+| parent | 111 | 784 | 0 | 0 | 0 | 0 | 0 | 0 | 0.41 | 44.8 |
+| lut60 | 73 | 525 | 23.6 | 7.5 | 1.2 | 5.2 | 0 | 0 | 0.22 | 19.7 |
+| loo60 | 73 | 524 | 52.8 | 5.5 | 0.8 | 7.3 | 0 | 0 | 0.21 | 21.2 |
+| lut50 | 63 | 422 | 51.7 | 17.3 | 2.0 | 21.6 | 0 | 0 | 0.18 | 16.7 |
+| loo50 | 63 | 426 | 129.9 | 37.7 | 1.9 | 14.2 | 0 | 0 | 0.17 | 15.0 |
+| flu60 | 62 | 400 | 132.1 | 46.5 | 4.0 | 26.3 | 0 | 0 | 0.17 | 14.2 |
+| lut40 | 53 | 314 | 185.4 | 45.3 | 5.4 | 31.1 | 12 | 0 | 0.10 | 9.6 |
+| loo40 | 53 | 292 | 237.3 | 43.6 | 7.1 | 40.9 | 0 | 0 | 0.12 | 8.7 |
+| lut30 | 43 | 235 | 1414 | 117 | 8.2 | 23.0 | 12 | 0 | 0.08 | 5.2 |
+| flu30 | 34 | 141 | — | — | 105 | 52.4 | 120 | 0 | 0.05 | 3.0 |
+| lut20 | 33 | 129 | — | — | 34.0 | 97.1 | 111 | 4 | 0.04 | 4.8 |
+| lut50 + 3 species (`final_66`, ladder base; not submitted) | 66 | 462 | 28.6 | 9.5 | 1.6 | 8.8 | 0 | 0 | 0.20 | 17 |
+| **lut50 + 3 species, reaction-trimmed (delivered primary, `lut50_t327`)** | **66** | **327** | **28.6** | **10.5** | **2.0** | **6.9** | **0** | **0** | **0.16** | **12.4** |
+| greedy from lut40 (`final_60`) | 60 | 389 | 47.8 | 29.4 | 5.6 | 15.9 | 0 | 0 | 0.10 | 9.6 |
+
+### 6.1 Species search in observable space (the winning method)
+
+The ranking-based sets above are one-shot: LOO ranks the species once, a
+threshold cut produces a mechanism, and the error is whatever it is.  The
+greedy observable-driven add-back instead *closes the loop* on the validated
+observables.  Trajectory (probe = 126 cases: 110 ignition + 16 flames):
+
+| step | species | added | J (=max(max|e_ig|/0.30, max|e_fl|/0.10)) | ig max % | fl max % |
+|---|---|---|---|---|---|---|
+| 0 | 63 (lut50) | — | 2.156 | 51.7 | 21.6 |
+| 1 | 64 | pC3H4 | 1.520 | 24.6 | 15.2 |
+| 2 | 65 | C2H3CHO | 1.131 | 21.3 | 11.3 |
+| 3 | 66 | aC3H4 | **0.877** | 20.1 | 8.8 |
+
+Evaluated afterwards on the **full 401-case matrix** (not the probe), the
+66-species mechanism gives ig max **28.6 %**, ig p95 9.5 %, ig median 1.6 %,
+flame max **8.8 %** and **zero** hard failures: it satisfies both acceptance
+tolerances on every case.
+
+Two local-optimality checks were then run on the full matrix:
+
+* **adding** any of the 45 remaining parent species: the best single addition
+  (HCCOH) moves J from 0.953 to 0.952 — no single species fixes the residual
+  error;
+* **removing** any single species: the cheapest removal (c-C4H5) pushes J to
+  1.108 (ig max 33.2 %) — every species in the set is load-bearing at the
+  tolerance level.
+
+So within this sub-set construction the 66-species mechanism is a two-sided
+local optimum, and **the remaining 28.6 % error on a single case (benzene/air,
+φ = 2, 2000 K, 30 atm) is not attributable to one missing species**; it would
+require either a multi-species aromatic sub-mechanism or rate re-fitting.
+
+The parallel attempt to reach tolerance from a *smaller* base failed: starting
+from lut40 (53 species, 12 hard failures) the same greedy needed 7 additions to
+remove all failures and then stalled at J ≈ 1.59 (60 species, ig max 47.8 %,
+flame max 15.9 %) — i.e. the 60-species regime is not reachable at tolerance by
+this route, and the delivered 66-species set is 6 species above the best
+sub-tolerance result found.
+
+Reading of the table:
+
+* The **ignition error is dominated by a handful of cases**: for lut50 the worst
+  case is iC4H10 φ = 0.5 at 1600 K (51.7 %) while the median error is 1.98 %;
+  for loo50 iC4H10 φ = 0.5 at 1000–1250 K reaches 130 %.  Benzene at φ = 2,
+  T = 2000 K and iC4H10 φ = 0.5 are the recurring problem cases for every
+  criterion.
+* **A single high-T benzene case is the binding constraint** for 73-species sets
+  (lut60: max 23.6 % on ig_C6H6_φ2_T2000_P30).
+* **Compute cost falls much more slowly than the species count**: a 63-species
+  mechanism is only 2.3× cheaper per ignition case and 2.7× cheaper per flame
+  case than the 111-species parent (flame cases remain the expensive ones, and
+  they dominate any reactor-network or CFD use).  "Smaller" and "cheaper" are
+  different objectives and both are reported.
+* Below ≈ 43 species the trade-off breaks down entirely: hard ignition failures
+  appear (12–324 of 379 cases) and the thermodynamic floor of §5 is violated.
+
+## 7. Delivered mechanisms
+
+| file | species | reactions | ig max / p95 / med % | flame max % | hard failures | role |
+|---|---|---|---|---|---|---|
+| `final/lut50_t327.yaml` | 66 | 327 | 28.6 / 10.5 / 2.0 | 6.9 / 2.7 | 0 | **primary**: smallest *reaction network* that meets both tolerances on all 401 cases (activity-trimmed, §7.1) and on all 80 measured flame points (§4.4–4.5) |
+| `final/lut50_g66.yaml` (=`mech/final_66.yaml`) | 66 | 462 | 28.6 / 9.5 / 1.6 | 8.8 / 2.8 | 0 | same species set, untrimmed reaction list (ladder base of §7.1; not submitted) |
+| `final/lut60.yaml` (=`mech/final_73.yaml`) | 73 | 525 | 23.6 / 7.5 / 1.2 | 5.2 / 0.9 | 0 | conservative: tighter errors (max 24 % / 5 %), same zero-failure guarantee |
+| `final/lut40_g60.yaml` (=`mech/final_60.yaml`) | 60 | 389 | 47.8 / 29.4 / 5.6 | 15.9 / 2.0 | 0 | aggressive: smallest set without hard failures; **exceeds** both tolerances |
+
+Relative to the parent: the primary mechanism removes **45 of 111 species
+(−40.5 %)** and **457 of 784 reactions (−58.3 %)**, and costs ≈ 2.5×/3.6× less
+CPU per ignition/flame case.  The delivered file `final/lut50_t327.yaml` is the
+66-species set with the 135 least active reactions removed (§7.1); the same
+species set with the full reaction list is kept as `final/lut50_g66.yaml` for
+reference.
+
+### 7.1 Reaction-network reduction (activity-ranked trimming)
+
+Reducing the *reaction* network on top of a fixed species set was attempted
+three times.  The first two attempts used a per-reaction screening loop
+(`src/reaction_trim.py`) and produced no usable output at a cost of ≈ 8.6 × 10^5
+core-seconds (§8.6).  The approach that worked (`src/trim_flux.py`) ranks the
+462 reactions of the 66-species set by their maximum normalised flux
+participation over the 2487 parent trajectory samples
+(`results/rxn_activity.json`), and validates a ladder of "delete the k least
+active reactions" variants — each on the full 401-case matrix, with the same
+parent-referenced tolerances, stopping at the first violation
+(job 7958806, 4.9 × 10^4 core-s).
+
+| reactions removed | reactions | ig max % | ig p95 % | ig med % | flame max % | flame med % | hard fails |
+|---|---|---|---|---|---|---|---|
+| 0 (base) | 462 | 28.59 | 9.53 | 1.64 | 8.77 | 2.77 | 0 |
+| 5 | 457 | 28.59 | 9.53 | 1.64 | 8.77 | 2.77 | 0 |
+| 10 | 452 | 28.59 | 9.53 | 1.64 | 8.96 | 2.77 | 0 |
+| 20 | 442 | 28.57 | 9.53 | 1.64 | 8.76 | 2.77 | 0 |
+| 30 | 432 | 28.57 | 9.53 | 1.65 | 8.75 | 2.76 | 0 |
+| 45 | 417 | 28.58 | 9.52 | 1.67 | 8.68 | 2.72 | 0 |
+| 60 | 402 | 28.60 | 9.52 | 1.70 | 8.60 | 2.71 | 0 |
+| 80 | 382 | 28.98 | 9.54 | 1.77 | 8.42 | 2.57 | 0 |
+| 105 | 357 | 28.87 | 9.51 | 1.73 | 8.29 | 2.83 | 0 |
+| **135** | **327** | **28.59** | **10.49** | **2.00** | **6.95** | **2.66** | **0** |
+| 170 | 292 | 35.86 | 14.39 | 2.49 | 8.76 | 3.31 | 0 (tolerance violated) |
+
+Reading of the ladder:
+
+* The reaction network is **strongly over-complete for these observables**:
+  deleting 135 of 462 reactions (29 %) leaves the worst-case ignition error
+  unchanged (28.59 % on the same benzene case), moves the ignition median from
+  1.64 % to 2.00 %, and *improves* the worst-case flame error from 8.77 % to
+  6.95 % — i.e. the removed reactions were not merely redundant but slightly
+  detrimental to the flame-speed agreement of this species set.
+* The break is sharp in *chemistry*, not in the error metric: the 135 removed
+  reactions all have individual activity ≤ **0.0217** (fraction of the largest
+  reaction flux in any sampled state) whereas the 35 next-least-active
+  reactions (0.023–0.045) are needed — deleting them pushes the worst ignition
+  case (n-C4H10, φ = 0.5, 1000 K, 1 atm) to 35.9 % and p95 to 14.4 %.
+* The removed set is 111 C2–C4 reactions, 20 aromatic (C5/C6-ring) reactions and
+  4 C0–C1 reactions; **no species is orphaned** (every species still appears in
+  at least one retained reaction), so the trimmed mechanism remains chemically
+  connected.
+* Verification of the delivered trimmed file: element imbalance 0, unbalanced
+  reactions 0, thermo difference 0, max |ΔT_eq| = 0 K (`verify_trim3.json`).
+* Experimental check (set B, 185 points): median log10(τ/τ_exp) = −0.118
+  (parent −0.101), median |Δlog10 τ| vs parent 0.012, p95 0.036, max 0.173 —
+  indistinguishable from the untrimmed 66-species set (0.010/0.035/0.176).
+* Experimental flame check (set D, 70 points): mean |Δs_L/s_L| vs parent 2.16 %,
+  p95 7.00 %, max 8.28 % — inside the 10 % flame tolerance on every measured
+  point; the untrimmed set gives 1.39 / 7.90 / 9.28 % and the 73-species set
+  1.10 / 7.42 / 8.44 %.  Trimming the reaction network therefore costs a little
+  in the mean but improves the tail.
+
+The delivered primary mechanism is therefore the **66-species / 327-reaction**
+set, and the ladder above is the quantitative accuracy/reaction-count
+trade-off: −29 % reactions for at most +0.4 pp of worst-case ignition error and
+−1.8 pp of worst-case flame error.
+
+## 8. Negative results, failures and limitations
+
+1. **DRGEP is inert for this mechanism/case configuration.**  With 2487 sampled
+   states, ε_A ≈ 1.0 for 105 of 111 species (only AR, N2 and C6H5C2H differ), so
+   a threshold cut removes exactly one species.  Reason: the classical
+   max-over-states aggregation of a max-product path metric saturates when any
+   single state links a species to a target.  Ranking quality is worse than
+   useless here — Spearman ρ(ε_DRGEP from a 6-case sample, LOO observable
+   importance) = 0.067 (p = 0.51, n = 98) — whereas LOO-based ranking is stable
+   (ρ = 0.948 between train-selected and test-selected rankings; ρ = 0.991
+   between 37-case and 114-case train probes).  Conclusion: for this task the
+   ranking criterion should be *defined on the validated observables*, not on
+   error-propagation proxies.
+2. **Sub-40-species mechanisms are physically degraded even when numerically
+   "accurate".**  Element balance and thermo consistency are preserved exactly by
+   construction, yet H2/air equilibrium at 27 species is 985 K instead of 2833 K
+   because H2O is no longer in the species set.  Reporting such a set as a
+   "successful 27-species reduction" (its ignition errors are only ~4 % median)
+   would be misleading; the check in §5 is the guard.
+3. **Experimental flame validation is thinner than the ignition one.**  Of the
+   94 SciExpeM laminar-burning-velocity datasets, 73 contain a fuel of this
+   study, but only 70 of their points are usable here (1 atm, 280–420 K, all
+   species in USC-II): 53 H₂, 10 benzene and 7 CH₄ points from 7 datasets
+   (§4.5).  The other points are NH₃-blended, He/Ar/CO₂-diluted, or at elevated
+   pressure/temperature.  The H₂ points carry little reduction information
+   (§4.3), so the *discriminating* experimental flame evidence rests on 17
+   points from 2 fuels — thin, and a limitation of the public data, not of the
+   method.  Reduction error itself is additionally quantified numerically on 21
+   parent flame cases (§6).
+4. **The H2/O2 experimental set cannot discriminate the reduction** (§4.3).
+5. **No rate re-optimisation was performed.**  All reduced mechanisms are
+   sub-sets; errors are therefore a lower bound on what a re-fitted mechanism of
+   the same size could achieve, and an upper bound on the "purity" of the
+   sub-set approach.
+6. **Reaction-level trimming: two failures before a working strategy.**  The
+   first attempt (job 7956769) kept one `multiprocessing` pool alive over ~460
+   candidate mechanisms; every worker accumulated a Cantera `Solution` per
+   candidate, the run thrashed and was killed at its wall limit — 4.37 × 10^5
+   core-seconds charged, no usable output (only the log survived).  The second
+   (job 7957806) used bounded batches (10 candidates per pool) and unbuffered
+   logging, but each of the 462 candidates still had to be integrated on a
+   20-case probe containing the slowest low-temperature conditions (~45 core-s
+   per case evaluation, ≈ 9.2 × 10^3 evaluations); it was killed when its
+   allocation was exhausted (4.18 × 10^5 core-s charged, outputs
+   `UNAVAILABLE`).  The third attempt abandoned per-reaction screening entirely
+   and validated only ~11 cumulative activity-ranked variants on the full
+   matrix (job 7958806, 4.9 × 10^4 core-s, 12 min wall) and produced the
+   result in §7.1.  The two failed jobs cost ≈ 8.5 × 10^5 core-seconds, i.e.
+   ≈ 65 % of all remote CPU charged in this run, with no scientific output;
+   they are reported because that is part of the honest accounting of an
+   exploratory run.  Recorded lesson: when each observable evaluation is
+   expensive, screen candidate *reductions* on the aggregate validated metric
+   (a ladder), not candidate *reactions* on a probe.
+7. Unfinished side experiment: a grid/Soret sensitivity study of the parent
+   flame speed (`src/flame_numcheck.py`) was started locally twice and stopped
+   for budget reasons; no results file was produced.  Flame-flame comparisons in
+   this report always use the same settings for parent and reduced mechanisms,
+   so the reduction error is unaffected by that incomplete study.
+
+## 9. Reproduction
+
+```
+src/combust.py      case generation + ignition/flame evaluation (Cantera)
+src/reduce.py       YAML surgery (species/reaction deletion), DRGEP, LOO sweeps
+src/runset.py       parallel mechanism × case evaluation
+src/analyze.py      error metrics          src/analyze_all.py  summary tables
+src/greedy_search.py  greedy species add-back search
+src/reaction_trim.py  reaction-level trimming (probe-based; two failed attempts, §8.6)
+src/trim_flux.py    activity-ranked reaction elimination with early stopping (§7.1)
+src/verify.py       element/thermo/equilibrium verification
+src/respecth.py     ReSpecTh XML parser    src/expt.py / src/expt_hc.py  case building
+src/final_analysis.py  final validation tables
+run_greedy.sh / run_validate.sh / run_trim3.sh / run_fl_exp.sh  offline 64-core job drivers
+                    (wheel bootstrap; the container has no zip binary)
+
+Raw inputs retained: `mech/parent.yaml`, `cases/cases_full.json`,
+`cases/cases_expt.json`, `cases/cases_expt_hc.json`, `cases/cases_flame_exp.json`,
+`ext/respecth/*.xml`, `ext/respecth2/xml/*.xml` (+ `ext/respecth2/sciexem_index.json`
+with the Zenodo record list).  Raw outputs: `results/val_full/`, `results/val_expt/`,
+`results/val_final/` (delivered set), `results/valf2/` (set B after the unit
+correction), `results/loo_trfull/`, `results/parent_full.json`,
+`results/parent_samples.npz`, `results/local_check/` (independent local
+re-execution, §5), `trim3/` (reaction-trimming ladder, §7.1), `fl_exp/`
+(experimental benzene flame comparison, §4.4) and `fl_exp2/` (multi-fuel archive
+flame comparison, §4.5).
+
+Job identifiers of the reported remote runs: 7954929/7955024 (parent reference +
+LOO), 7955482 (full matrix + set A verification), 7955535 (full-train LOO),
+7955916 (greedy stage 1), 7956563 (greedy stage 2 + pruning), 7958744
+(first trim_flux attempt, failed on a missing wheel — 128 core-s), 7958806
+(reaction-trimming ladder), 7959039 (experimental benzene flames) and 7959143
+(multi-fuel archive flames); failed reaction-screening jobs 7956769 and 7957806
+are documented in §8.6.

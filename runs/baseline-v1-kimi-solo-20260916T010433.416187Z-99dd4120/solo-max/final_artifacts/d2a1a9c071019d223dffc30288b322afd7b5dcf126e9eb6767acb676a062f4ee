@@ -1,0 +1,293 @@
+# Reduction of the USC-II Combustion Mechanism
+
+**Author:** autonomous research run (principal `a712b8bd`)
+**Date:** 2026-09-16
+**Parent mechanism:** USC Mech II (Wang et al., *Combust. Flame* 2007),
+111 species / 784 reactions, Cantera YAML (`data/parent_usc_ii.yaml`,
+sha256 `eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee`)
+
+## 1. Summary
+
+The USC-II mechanism (111 species / 784 reactions) was reduced with a
+self-built DRG (directed relation graph) workflow. Products were validated
+against the parent on two experimentally measurable macroscopic observables
+— autoignition delay time (IDT) and laminar flame speed (SL) — over 9
+chemically diverse fuels (H2, CO, CH4, CH3OH, C2H2, C2H4, C2H6, C3H8,
+nC4H10), φ = 0.5–1.5, P = 1–30 atm, T0 = 1000–2000 K (IDT; 891 cases) and
+φ = 0.6–1.6, Tu = 300–400 K, P = 1–5 atm (SL; 216 cases).
+
+Three reduced mechanisms are delivered, all passing explicit consistency
+checks (element-balanced reactions, verbatim parent thermo/transport for
+retained species, no orphan species, no dangling third-body efficiencies):
+
+| tier | file | species | reactions | IDT mean / max err | SL mean / max err |
+|---|---|---|---|---|---|
+| conservative (L) | `mechs/usc2_reduced_L.yaml` | 97 (−12.6 %) | 712 (−9.2 %) | 0.24 % / 5.2 % | 0.13 % / 0.88 % |
+| balanced (M) | `mechs/usc2_reduced_M.yaml` | 88 (−20.7 %) | 646 (−17.6 %) | 0.40 % / 5.8 % | 0.28 % / 1.7 % |
+| aggressive (S) | `mechs/usc2_reduced_S.yaml` | 80 (−28.0 %) | 566 (−27.8 %) | 0.79 % / 9.3 % | 0.65 % / 6.0 % |
+
+All three tiers satisfy the a-priori tolerance (mean ≤ 5 %, max ≤ 20 % vs
+parent) at every one of the 1107 validation conditions.
+
+The full accuracy/complexity trade-off over 16 candidate mechanisms
+(27–97 species) is in `results/tradeoff_table.json` and
+`results/tradeoff.png`. The useful-accuracy boundary for this validation
+breadth lies near ~75–80 species: below it, low-temperature n-alkane
+ignition degrades rapidly (§4.1, §5.2).
+
+## 2. Provenance, scope, and consistency
+
+- Parent = USC Mech II (111 sp / 784 rxn; header: `cti2yaml` from
+  `USC_Mech_II.cti`, Cantera 3.1.0). **No downloaded or third-party
+  mechanism was used**; every delivered mechanism was derived from the
+  parent by our own code in this workspace (`src/`).
+- Retained species keep the parent's NASA-7 thermo, transport and elemental
+  composition verbatim (verified by `src/check_consistency.py`); only
+  whole, element-balanced reactions are removed, so element conservation
+  and thermodynamic consistency hold by construction *and* were verified
+  explicitly. All three **delivered** mechanisms: 0 issues. Across all 50
+  generated candidates, exactly one rejected aggressive candidate
+  (usc2pf_full_k15, not delivered) was flagged for a benign orphan species
+  (l-C6H4, retained with no remaining reaction).
+- The parent's known minor NASA-7 fit discontinuities (Cantera
+  `NasaPoly2::validate` warnings for CH2OCH, C4H5-2, C4H6-2, C2H3CHOCH2,
+  CH3CHCHCHO) are inherited unchanged **deliberately**, keeping overlapping
+  predictions bit-consistent with the parent.
+- Third-body efficiency maps are pruned of removed species; the parent's
+  duplicate-reaction flags are preserved.
+
+## 3. Methods
+
+### 3.1 Toolchain (built for this run)
+
+- Cantera 3.1.0 + NumPy/SciPy under Python 3.12; a 64-core remote node ran
+  sweeps/validation (offline wheels in `wheels/`, bootstrap
+  `src/remote_bootstrap.sh`).
+- `src/drg.py`: state sampling (0-D adiabatic const-P ignition trajectories
+  + 1-D freely-propagating flames); DRG coefficients
+  r_AB = max_i |ν_Ai ω_i δ_Bi| / max(P_A, C_A) with
+  P_A/C_A the total production/consumption rates of A;
+  R_AB = max over sampled states; species selection by single-hop
+  threshold, iterative DFS, or DRGEP max-product paths; reaction importance
+  I_i = max over states and species of |ν_Ai ω_i| / max(P_A, C_A).
+- `src/reduce.py` (global selection + top-K ladder),
+  `src/reduce_perfuel.py` (per-fuel R matrices + union selection),
+  `src/repair.py` (greedy single-species add-back at worst conditions),
+  `src/validate.py` (parallel IDT/SL runners, per-case timeouts),
+  `src/compare.py`, `src/check_consistency.py`, `src/tradeoff.py`.
+
+### 3.2 DRG state sampling
+
+513 cases → 18 257 states (`results/states_full/`): 9 fuels × φ{0.5,1,1.5}
+× P{1,10,30 atm} × T0{1000…1800 K} ignition trajectories (405) + 9 fuels ×
+φ{0.8,1,1.4} × Tu{300,400 K} × P{1,5 atm} flames (108); states log-spaced
+along each trajectory/flame.
+
+### 3.3 What worked and what did not (incl. negative results)
+
+1. **DRGEP max-product path search saturates** on this multi-fuel,
+   wide-condition ensemble: the max-accumulated R matrix is dense (~17 % of
+   species pairs have R > 0.1), so DRGEP retains ~108/110 species for every
+   eps ∈ [1e-4, 0.3]; iterative DFS graph search saturates identically
+   (110/110). → selection by threshold/rank instead of graph search.
+2. **Targeting hub radicals (H/O/OH/HO2) over-anchors** the graph; final
+   DRG targets are only the fuel species + O2.
+3. **Global all-fuels max-accumulation inflates importance**: with 18 257
+   states, ~91 species tie at importance ≈ 1.0, making small top-K cuts
+   arbitrary. **Per-fuel engines + union** (one R matrix per fuel from that
+   fuel's states only) restore discrimination — used for the M and S tiers.
+4. **Greedy single-hop ranking has a multi-hop blind spot**: it dropped
+   1-butene (C4H81), a two-hop intermediate of nC4H10 low-T oxidation
+   (sC4H9 → C4H8 + HO2), causing +22 % low-T nC4H10 IDT error at 77
+   species. A worst-condition single-species add-back scan (34 candidates)
+   identified C4H81 as the unique fix (error → −2 %).
+5. **A myopic repair fails**: an early top75+C4H81 mechanism (78 sp)
+   passed its nC4H10-only repair conditions at 4.3 % but is catastrophically
+   wrong for C2H2 low-T ignition on the full grid (max +584 % at 1100 K —
+   C2H2 was neither in the repair conditions nor in the screening
+   mini-grid). → rejected. The final S tier instead repairs the per-fuel
+   k40 mechanism with C2H2-covered conditions, adding **HCCOH** (the
+   C2H2-oxidation bottleneck): full-grid max IDT error 22.7 % → 9.3 %,
+   mean 1.15 % → 0.79 %. Lesson recorded: screening/repair condition sets
+   must cover every fuel in the validation envelope, and any repaired
+   candidate must be re-validated on the full grid before adoption.
+6. **Reaction-level pruning beyond species-driven removal was not applied**:
+   across the multi-fuel ensemble only ~5/784 reactions have importance
+   < 0.01 — the reaction graph is as dense as the species graph, so
+   reaction counts naturally track species counts.
+
+### 3.4 Validation protocol
+
+- Reference = **parent mechanism predictions** (not experiment); the parent
+  was validated by its authors against shock-tube and flame data
+  (Wang et al. 2007). Experimental context is a spot check (§6).
+- IDT: adiabatic constant-pressure 0-D reactor, IDT = time of max dT/dt,
+  20 s physical cap; all 891 parent cases ignited (0 failures).
+- SL: freely-propagating 1-D flame, mixture-averaged transport, adaptive
+  grid; all 216 parent cases converged (0 failures).
+- Full grid (per mechanism): IDT 9 fuels × φ{0.5,1,1.5} × P{1,10,30 atm} ×
+  11 T0 (1000–2000 K) = 891; SL 9 fuels × φ{0.6,0.8,1,1.2,1.4,1.6} ×
+  Tu{300,400 K} × P{1,5 atm} = 216.
+- Screening mini-grid (5 fuels: H2, CO, CH4, C2H4, nC4H10; 285 cases) for
+  the 14-mechanism ladder.
+- A-priori tolerances for "useful accuracy": mean |err| ≤ 5 % and
+  max |err| ≤ 20 % vs parent. All three delivered tiers satisfy this at
+  every validation condition (see §4.2).
+
+## 4. Results
+
+### 4.1 Accuracy/complexity trade-off
+
+Ladder on the mini-grid (full table: `results/tradeoff_table.json`,
+figure: `results/tradeoff.png`):
+
+| candidate | sp/rxn | IDT mean/max % | SL mean/max % |
+|---|---|---|---|
+| top95 | 97/712 | 0.13 / 1.6 | 0.10 / 0.6 |
+| pf eps0.005 | 88/646 | 0.27 / 2.5 | 0.24 / 1.3 |
+| top85 | 87/632 | 0.35 / 4.2 | 0.27 / 2.2 |
+| pf k40 | 79/564 | 0.71 / 8.4 | 0.38 / 3.0 |
+| top75 | 77/509 | 1.19 / 21.9 | 0.42 / 3.3 |
+| pf k30 | 71/481 | 2.81 / 26.6 | 1.44 / 7.1 |
+| top65 | 67/417 | 2.25 / 25.0 | 1.89 / 6.0 |
+| pf k25 | 65/431 | 5.95 / 54.1 | 3.04 / 13.7 |
+| pf k20 | 62/412 | 13.7 / 189 | 3.79 / 17.5 |
+| top55 | 57/333 | 64.7 / 1042 | 4.58 / 36.3 |
+| top45 | 47/257 | 408 / 6630 | 52.1 / 98.8 |
+| top35 | 37/223 | 341 / 6630 | 48.4 / 98.3 |
+| top25 | 27/147 | 911 / 9570 | 47.2 / 98.8 |
+| pf k15 | 44/256 | 608 / 27473 | 3.55 / 33.6 |
+
+Errors stay small down to ~80 species (max IDT ≤ 8.4 %), cross the 20 %
+line between ~65–77 species, and mechanisms below ~60 species are not
+quantitatively useful for ignition (IDT errors > 100 %).
+
+### 4.2 Full-grid validation of the delivered tiers (9 fuels, 1107 cases each)
+
+| tier | sp/rxn | IDT mean/p90/max % | SL mean/p90/max % | non-ok |
+|---|---|---|---|---|
+| L = top95 | 97/712 | 0.24 / 0.67 / 5.2 | 0.13 / 0.52 / 0.88 | 0 |
+| M = pf eps0.005 | 88/646 | 0.40 / 1.46 / 5.8 | 0.28 / 0.94 / 1.7 | 0 |
+| S = pf k40 + HCCOH | 80/566 | 0.79 / 2.56 / 9.3 | 0.65 / 2.01 / 6.0 | 0 |
+
+Per-fuel max-error breakdown (IDT %; SL %):
+
+| tier | H2 | CO | CH4 | CH3OH | C2H2 | C2H4 | C2H6 | C3H8 | nC4H10 |
+|---|---|---|---|---|---|---|---|---|---|
+| L (IDT) | 0.3 | 0.5 | 0.2 | 0.0 | 5.2 | 2.7 | 1.5 | 3.5 | 1.0 |
+| L (SL)  | 0.0 | 0.0 | 0.1 | 0.0 | 0.1 | 0.3 | 0.1 | 0.9 | 0.8 |
+| M (IDT) | 0.3 | 0.6 | 0.4 | 0.0 | 5.8 | 2.6 | 2.0 | 4.0 | 3.4 |
+| M (SL)  | 0.0 | 0.0 | 1.3 | 0.0 | 0.6 | 1.3 | 0.7 | 1.3 | 1.7 |
+| S (IDT) | 0.3 | 0.5 | 0.3 | 0.1 | 9.3 | 2.9 | 0.9 | 5.0 | 8.4 |
+| S (SL)  | 0.0 | 0.0 | 1.3 | 0.0 | 4.7 | 1.4 | 0.8 | 6.0 | 4.0 |
+
+### 4.3 Off-grid generalization check
+
+To test that grid-based validation is not self-serving, all tiers were
+re-checked at deliberately unseen conditions (4 fuels: CH4 baseline and the
+three error-prone ones C2H2, C3H8, nC4H10; IDT at φ = 0.7/1.3, P = 3/20
+atm, T0 = 1150–1750 K — 64 points; SL at φ = 0.7/1.3/1.5, Tu = 350 K,
+P = 2 atm — 12 points; none of these φ/P/T/Tu values appear in the
+validation grid). Raw outputs in `results/offgrid/`, comparisons
+`results/cmp_offgrid_*.json`:
+
+| tier | IDT mean/max % | SL mean/max % |
+|---|---|---|
+| L | 0.61 / 4.4 | 0.27 / 0.7 |
+| M | 0.87 / 3.8 | 0.49 / 1.3 |
+| S | 1.56 / 5.4 | 1.11 / 3.5 |
+
+All off-grid errors are inside the a-priori tolerances, i.e. the delivered
+mechanisms interpolate safely between validation-grid points.
+
+### 4.4 Where the errors live
+
+- L/M tiers: worst fuel is C2H2 at φ = 1.5, 10–30 atm (rich, high-pressure
+  corner; max 5.2–5.8 %) — the envelope's edge where acetylene
+  polymerization/aromatics-initiation chemistry matters.
+- S tier: worst fuels are C2H2 (max 9.3 %, lean low-T ignition) and
+  nC4H10 (8.4 %, low-T) for IDT, C3H8 (6.0 %) for SL — after the
+  HCCOH add-back removed the single 22.7 % C2H2 outlier of the
+  unrepaired 79-species k40 mechanism.
+- Small fuels (H2, CO, CH4, CH3OH) remain within ≲ 1.5 % at all tiers.
+
+## 5. Discussion
+
+### 5.1 The trade-off, quantitatively
+
+Across 16 candidates: species 111 → 97 costs nothing measurable
+(max err < 0.2 % IDT on mini-grid; 5.2 % on the harder full grid);
+111 → 88 costs ≲ 1 % mean; 111 → 80 (with a one-species HCCOH repair)
+costs ~0.8 % mean with worst-corner errors ≲ 9 %; below ~75 species the
+price rises superlinearly (mean IDT error doubles at ~70, triples at ~65;
+> 100 % below 60).
+Reaction counts track species counts (712/646/566 for the three tiers).
+
+### 5.2 Why the reduction saturates around ~80 species
+
+USC-II = H2/CO/C1–C4 core chemistry + a C5–C6 aromatics block (~25
+species) + iso-C4 branch. The aromatics and iso-C4 are the only sizeable
+weakly-coupled groups; the C1–C4 core is strongly coupled through the
+H/OH/C1–C4 radical pool across the chemically diverse validation set
+(9 fuels × wide T/P/φ). A mechanism that must stay accurate for *all nine
+fuels simultaneously* therefore keeps most of the core; below ~75 species
+some fuel's chain necessarily breaks (first nC4H10 low-T, then C3/C4
+generally, then rich C2H2). Much smaller mechanisms are possible only for
+narrower envelopes (e.g., H2/CO/CH4 only) — outside this run's chosen
+scope of maximum chemical diversity.
+
+### 5.3 Limitations
+
+- Validation is against the parent, not raw experiment; any parent-model
+  bias propagates to all tiers. §6 is a spot check, not a systematic
+  experimental validation.
+- The validation grid is finite: no Tu > 400 K, P > 30 atm, flames beyond
+  φ 0.6–1.6, no counterflow/extinction limits, no flame-structure or
+  species-profile targets, no low-temperature (< 1000 K) NTC regime.
+- Greedy importance selection (+ optional 1-species repair) is not globally
+  optimal; per-application bespoke mechanisms can be smaller.
+- IDT definition (max dT/dt, constant-P) differs from some experimental
+  conventions (e.g., OH* onset); parent-vs-reduced comparisons are
+  internally consistent, which is what the reduction task requires.
+
+## 6. Experimental context (literature values — clearly not our data)
+
+Parent predictions at canonical conditions (and hence the L/M tiers, which
+match it to ≲ 1 %) fall inside commonly reported experimental ranges:
+- CH4/air, φ = 1, 300 K, 1 atm: parent SL = **36.5 cm/s** vs ~36 ± 4 cm/s
+  reported (e.g., Vagelopoulos & Egolfopoulos, *Combust. Flame* 1998).
+- C3H8/air and nC4H10/air, φ = 1, 300 K, 1 atm: parent SL = **39.6 / 40.0
+  cm/s** vs typical reported ~38–40 cm/s.
+- H2/air, φ = 1.8 (near peak), 300 K, 1 atm: parent SL = **295.8 cm/s**;
+  literature spans roughly 2–3 m/s there (large stretch-related scatter).
+- For systematic parent-vs-experiment validation see Wang et al. 2007 (the
+  parent's own validation against shock-tube IDT and flame speeds for
+  H2/CO/C1–C4 fuels).
+
+## 7. Reproducibility
+
+- Code: `src/` (drg.py, reduce.py, reduce_perfuel.py, repair.py,
+  validate.py, compare.py, check_consistency.py, tradeoff.py,
+  remote_bootstrap.sh).
+- Inputs: `data/parent_usc_ii.yaml` (sha256 above); sampled states
+  `results/states_full/` (+ `results/states_full.tar.gz`); DRG matrices
+  `results/R_matrix_full.npy`, `results/rxn_importance_full.npy`,
+  `results/R_perfuel_full.npz`.
+- Raw validation outputs: `results/full/*.json` (full grid),
+  `results/mini/*.json` (screening), `results/offgrid/*.json` (off-grid
+  generalization), comparisons `results/cmp_*.json`,
+  trade-off `results/tradeoff_table.json` / `results/tradeoff.png`,
+  repair logs `logs/repair_top75.log`, `logs/repair_pfk40.log`.
+- Remote jobs (`research_compute`): sampling `job_41c7f89a…`, screening
+  `job_80811114…` / `job_05a5059a…` / `job_c67057e3…`, full-grid
+  `job_1a57bf1e…` (parent) / `job_9ca72c42…` (L) / `job_d83578d5…` (M) /
+  `job_83400b57…` (unrepaired k40) / `job_d6c8d303…` (final S) /
+  `job_f1236b69…` (rejected top75rep) / `job_2b87e023…` (off-grid check).
+  One early screening job failed without outputs (`job_6ebadb54…`,
+  suspected OOM; superseded by hardened split jobs).
+- Deliverable checksums:
+  L `f000f1c44d0ba2d0dbb9fc33f7c86913f4fe2bba2ed28c75bd33b9093a76a1a8`,
+  M `38cebfd51a4183c28d5cafb94234e0e41798641e2899160e416200eb20ac3a09`,
+  S `8d7b0c02a98155ec0228a8b3f6afac0fa8d1a36ad14a6b900e64bdde1af47ee5`.
+- Env: Python 3.12, Cantera 3.1.0, NumPy 2.5.3, SciPy 1.18.1, PyYAML 6.0.3;
+  offline wheels in `wheels/`.

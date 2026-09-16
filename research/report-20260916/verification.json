@@ -1,0 +1,24 @@
+{
+  "verified_at_utc": "2026-09-16T13:30:37.608815+00:00",
+  "candidate_count": 30,
+  "completed_groups": 10,
+  "candidate_case_records": 18300,
+  "fully_covered_candidates": 10,
+  "same_case_pool": true,
+  "same_scientific_source_pins": true,
+  "all_reported_success_errors_recomputed": true,
+  "candidate_triplets_group_identity_checked": true,
+  "docx_zip_valid": true,
+  "pdf_pages": 20,
+  "tables": 16,
+  "embedded_figures": 4,
+  "visual_spot_check_pages": [
+    1,
+    9,
+    11
+  ],
+  "paid_model_calls_this_round": 0,
+  "new_scientific_solver_calls_this_round": 0,
+  "project_sync": "PENDING_CEPH_RECOVERY",
+  "feishu_upload": "NOT_PERFORMED"
+}

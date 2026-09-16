@@ -1,0 +1,67 @@
+{
+  "scope": "Read-only graph replay on existing cleaned training states; no simulation, new candidate, or search",
+  "versions": {
+    "cantera": "3.2.0",
+    "scipy": "1.18.1",
+    "numpy": "2.5.3"
+  },
+  "source_sha256": "d8af9fbd899ae1ee734eb2cc9acd893b30459f60097262ee40f781167ae56174",
+  "synthetic_dense_scores": [
+    [
+      1,
+      0,
+      0
+    ]
+  ],
+  "synthetic_sparse_scores": [
+    [
+      1,
+      1,
+      0.8
+    ]
+  ],
+  "n_cases": 60,
+  "n_states": 7065,
+  "original_vs_saved_max": 0,
+  "n_cases_with_species_change_gt_1e8": 50,
+  "aggregate_species_changes_gt_1e8": [
+    {
+      "species": "O",
+      "original": 0.999999988596115,
+      "sparse": 1
+    },
+    {
+      "species": "C2H5",
+      "original": 0.9998003132157718,
+      "sparse": 1
+    },
+    {
+      "species": "C6H5CHO",
+      "original": 0.9094316456823238,
+      "sparse": 0.959338337129623
+    }
+  ],
+  "threshold_membership_changes_before_protection": {
+    "0.001": [],
+    "0.003": [],
+    "0.01": [],
+    "0.02": [],
+    "0.04": [],
+    "0.07": [],
+    "0.1": [],
+    "0.15": [],
+    "0.2": [],
+    "0.3": []
+  },
+  "aggregate_reaction_score_change_max": 0.16181364855064076,
+  "reaction_threshold_membership_change_counts": {
+    "0.001": 0,
+    "0.003": 0,
+    "0.01": 0,
+    "0.02": 0,
+    "0.03": 0,
+    "0.05": 1,
+    "0.1": 0
+  },
+  "cpu_seconds": 51.769999892
+}

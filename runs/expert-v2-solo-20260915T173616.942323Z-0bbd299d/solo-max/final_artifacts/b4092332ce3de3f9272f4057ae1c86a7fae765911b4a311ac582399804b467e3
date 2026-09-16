@@ -1,0 +1,158 @@
+# USC-II reduction: an exploratory, multi-fuel study
+
+**Completed exploratory reduction and validation — 15 September 2026.**
+
+## Result and intended use
+
+This study constructs new subsets of the supplied USC-II mechanism (111 species, 784 reactions), preserving the surviving rate laws, thermochemistry and transport parameters. The goal is a smaller network for high-temperature ignition and premixed laminar burning velocity across hydrogen/syngas, oxygenated fuel, C1–C4 hydrocarbons and aromatics. No downloaded reduced mechanism is presented as an original design, and no rate constants are fitted to experiments.
+
+| Frozen candidate | Species | Reactions | Species removed | Reactions removed | File |
+|---|---:|---:|---:|---:|---|
+| High fidelity | 93 | 553 | 16.2% | 29.5% | [USC-II 93/553](mechanisms/final/uscII-93s-553r.yaml) |
+| Balanced | 88 | 475 | 20.7% | 39.4% | [USC-II 88/475](mechanisms/final/uscII-88s-475r.yaml) |
+| Compact | 74 | 433 | 33.3% | 44.8% | [USC-II 74/433](mechanisms/final/uscII-74s-433r.yaml) |
+
+File hashes and exact source lineage are pinned in [freeze.json](mechanisms/final/freeze.json). All three passed their declared parent-fidelity limits on the development, confirmation and external sets at the stated numerical settings. Experimental accuracy is a separate, stricter limitation: the parent already has large errors for the selected methanol shock-tube targets.
+
+**88 species / 475 reactions is the recommended strict-tolerance compromise among the candidates tested here.** Across the 202 main conditions at the stated final numerical settings, its largest parent-relative ignition/flame errors are 6.60%/3.49%. The 93/553 option reduces those maxima to 2.74%/1.32%. Moving from 88/475 to 74/433 removes another 14 species and 42 reactions, while increasing the maxima to 15.71%/9.80%; it is appropriate only when the wider 20%/10% fidelity limits are acceptable. Complexity here means network size; a controlled wall-time speedup remains unmeasured.
+
+The comparison is between experimentally measurable macroscopic observables. Species-profile agreement is not an acceptance condition. Parent fidelity measures the effect of deleting chemistry; agreement with measurements measures the combined adequacy of the parent chemistry, retained subset, apparatus approximation and numerical model. These are reported separately.
+
+## Application domain and evidence split
+
+The 17 fuels/blends are H2; methane; methanol; acetylene, ethylene and ethane; allene, propyne, propene and propane; 1,3-butadiene, n-butane and isobutane; benzene and toluene; 50:50 H2/CO; and 85:10:5 methane/ethane/propane (molar). Aromatics and unsaturated fuels were kept even when aggressive reductions failed on them. Nitrogen is an inert diluent, with no NOx chemistry.
+
+| Evidence | Cases | Conditions | Role |
+|---|---:|---|---|
+| Designed development | 68 ignitions + 34 flames | Ignition: 1100–1600 K, 1–20 atm, phi 0.6–1.6, air or Ar-diluted oxidizer. Flames: 1 atm, phi 0.7/1.4, inlet 300 K (400 K for methanol/aromatics). | Graph sampling, sensitivity ranking, candidate revision and selection. |
+| Designed confirmation | 34 ignitions + 17 flames | Ignition: 1200 K/2 atm/phi 0.8 and 1500 K/12 atm/phi 1.1 in air. Flames: 3 atm, phi 1.05, inlet 350/450 K. | Conditions frozen before reduction; predictions withheld from candidate selection. |
+| Primary experimental flames | 15 | Park et al.: five C3–C4 fuels, phi 0.8/1/1.4, 298 K, 1 atm. | External comparison with directly tabulated observations. |
+| SFCPD curated targets | 20 flames + 10 ignitions | Flames: 298–343 K, 1 atm; ignitions are stoichiometric and Ar-diluted. | External comparison with secondary evaluated targets, often aggregating studies. |
+| ChemKED toluene transcription | 4 ignitions | 1434–1635 K, 1.66–2.03 atm; 0.5% toluene/4.5% O2/95% Ar. | OH half-maximum diagnostic; primary article unavailable. |
+
+All 49 external computations together cover 35 flame and 14 ignition entries. The ignition range is 1130–1635 K, 0.95–10.7 atm, phi=1, with 72.7–98 mol% Ar. The flame range is phi 0.701–1.4, 298–343 K, at 1 atm. Two SFCPD butadiene entries duplicate primary Park observations; other aggregate source overlap remains. These are **not 49 independent experiments**, and no independent-study confidence interval is inferred from the point count.
+
+The exact combinations, normalized mole fractions, original units, definitions, uncertainty provenance and source locations are in [the 202-row case catalog](results/case_catalog.csv) and the JSON manifests under `raw/`. The ranges above do not imply that every Cartesian combination was tested. In particular, external observations do not establish lean/rich air-ignition or elevated-pressure flame accuracy. Acetylene, benzene, allene, propyne and the natural-gas blend have only parent-reference validation here. The [fuel/observable coverage table](results/evidence_coverage.md) makes the zeros explicit: external ignition covers methane, methanol, ethylene, ethane, propane, butadiene and toluene; toluene has no external flame comparison. Other externally represented fuels have flame evidence only.
+
+The parent authors describe USC-II as a high-temperature H2/CO/C1–C4 model, with shock-tube ignition, flow-reactor and flame validation. Its aromatic subnetwork is tested here too. This run omits low-temperature/NTC and cool-flame chemistry, wall-loss-sensitive compression ignition, extinction, pollutants/soot, turbulent flames, detonations and liquid evaporation. It makes no claim of a continuous validity envelope.
+
+## How the mechanism was reduced
+
+Cantera 3.2.0 provides established reactor, kinetics and one-dimensional flame solvers. The reduction code is inspectable Python. Initial directed-relation graph with error propagation (DRGEP) scores used maximum-product paths through reaction-production couplings. Active fuel/O2 roots, explicit protection of input fuels and the H2/O2 core, and activity/temperature gates retained 21,648 of 23,632 sampled development states. A normalized absolute **net** reaction-flux score screened reactions; duplicate groups were retained together. Net-flux screening can overlook low-flux but influential pathways, so every candidate was resimulated for the target observables.
+
+Graph-only pruning was insufficient. The search therefore changed to one-species deletion sensitivity from a 108-species/680-reaction connected, flux-filtered baseline. Each of 82 single deletions and the baseline was evaluated on all 102 development conditions. Cumulative deletions were then tested jointly; small individual effects were not assumed to add linearly. Higher reaction-flux thresholds refined promising subsets. Finally, restoring H2C4O and its three surviving reactions repaired a large acetylene ignition error in the 73-species subset, producing the 74-species family.
+
+| Observed development result, coarse screening | Species / reactions | Maximum ignition / flame error vs parent |
+|---|---:|---:|
+| Aggressive graph candidate | 84 / 627 | 191.6% / 21.0% |
+| More aggressive graph candidate | 70 / 503 | 2076% / 23.9% |
+| Flux-filtered connected baseline | 108 / 680 | 0.515% / 0.277% |
+| Joint deletion of 15 ranked species | 93 / 617 | 3.077% / 1.794% |
+| Joint deletion of 20 ranked species | 88 / 587 | 6.071% / 3.573% |
+| Joint deletion of 30 ranked species | 78 / 534 | 15.451% / 8.267% |
+| Joint deletion of 35 ranked species | 73 / 474 | 29.031% / 8.839% |
+| Restore H2C4O; modest reaction pruning | 74 / 477 | 13.182% / 8.864% |
+| Restore H2C4O; stronger reaction pruning | 74 / 433 | 13.627% / 9.702% |
+| Still stronger reaction pruning | 74 / 394 | 13.413% / 11.675% |
+
+These are screening results at the original discretization, not substitutes for the refined final validation below. A queued conservative 74/477 backup later completed all 102 refined development cases, with maxima 13.182% ignition and 8.995% flame error. It spends 44 additional reactions to reduce the maximum flame error by about 0.594 percentage points relative to 74/433; it was retained as supporting trade-off evidence, not substituted into the frozen submission. The failed graph attempts and the 74/394 result show the observed cost of further compression. Adding CH to the 74/477 subset increased size without improving its maximum error. The restored H2C4O pathway comprises parent reaction indices 422, 425 and 426 (zero-based): C4H2+OH ⇌ H+H2C4O; H+H2C4O ⇌ C2H2+HCCO; H2C4O+OH ⇌ CH2CO+HCCO. This local intervention follows measured deletion sensitivity and connectivity; it does not establish a universal rate-control explanation.
+
+The custom graph matrix agrees with the archived pyMARS implementation within 1.78e-15 absolute error; the maximum-product paths agree with an independent Floyd closure within 1.11e-16. Reactor temperature/pressure derivatives agree with a short integration-step check within 3.3e-5 relative error. These checks validate implementation components, not the physical accuracy of the reaction mechanism.
+
+## Final parent-fidelity validation
+
+Before candidate results, the strict limits were set at **10% maximum ignition-delay error and 5% maximum flame-speed error**. The compact limits were **20% and 10%**. The strict tier aims to keep added structural error small on the scale of common ignition and flame measurement uncertainty; the compact tier explicitly trades more error for a smaller state vector and reaction network. These are exploratory engineering tolerances, distinct from each observation's reported uncertainty. Error is `100 × abs(reduced/parent − 1)`. A missing, failed or nonigniting case cannot pass. Median and 95th-percentile errors describe typical performance but cannot erase a maximum violation.
+
+Maximum error % (median; 95th percentile).
+
+| Model | Split | Ignition | Flame | Declared limits |
+| --- | --- | --- | --- | --- |
+| 93/553 | development | 2.742 (0.255; 1.788) | 1.321 (0.620; 1.005) | Pass |
+| 93/553 | confirmation | 1.877 (0.179; 1.615) | 1.124 (0.500; 0.887) | Pass |
+| 88/475 | development | 6.601 (0.750; 4.627) | 3.495 (1.297; 3.283) | Pass |
+| 88/475 | confirmation | 4.428 (0.488; 3.400) | 2.439 (1.347; 2.381) | Pass |
+| 74/433 | development | 13.626 (1.446; 11.550) | 9.589 (1.444; 6.280) | Pass |
+| 74/433 | confirmation | 12.907 (1.506; 11.171) | 5.977 (1.705; 3.675) | Pass |
+
+All 102 development and all 51 independent confirmation cases succeed for every model. The strict candidates meet 10%/5%; the compact candidate meets 20%/10%. These are errors against the parent, not against experiments. The complete [fidelity table](results/final_fidelity/summary.csv) and [point records](results/final_fidelity/details.csv) retain signed errors and limiting case IDs. The [accuracy–complexity figure](figures/complexity_tradeoff.svg) distinguishes coarse screening from final refined development results.
+
+The three YAML files were frozen at **2026-09-15 20:45:48 UTC**, before any of this run's external prediction errors or reduced-model confirmation results were inspected. High and balanced external jobs had been queued with byte-identical source candidates; their hashes are recorded in `raw/external_precompute_pins.json`. No chemistry was revised after inspecting these comparisons. The 51 confirmation conditions were fixed before reduction and differ from the development conditions in temperature, pressure and equivalence ratio. All three retained their declared tolerances on this separate set; no missing or failed confirmation case was excluded. The largest confirmation ignition errors occur for butadiene in 93/553 and 88/475 and acetylene in 74/433; the largest flame errors occur for n-butane, acetylene and butadiene, respectively.
+
+## External experimental comparison
+
+All four models have successful results for all 49 external computations. On these conditions, the additional error from reduction remains much smaller than some inherited experimental discrepancies:
+
+| Reduced model | Maximum ignition difference from parent, 14 points | Maximum flame difference from parent, 35 points |
+|---|---:|---:|
+| 93/553 | 1.924% | 0.883% |
+| 88/475 | 3.996% | 3.028% |
+| 74/433 | 15.706% | 9.800% |
+
+The following entries are **median / maximum absolute percent error against the observation or curated target**, followed by the number inside its reported interval. Different uncertainty conventions and dependent points prevent interpreting these counts as a common statistical pass rate.
+
+| Evidence | Parent 111/784 | 93/553 | 88/475 | 74/433 |
+|---|---:|---:|---:|---:|
+| Primary flames, 15 points | 6.80 / 17.46 (5/15) | 6.69 / 18.46 (5/15) | 6.00 / 21.01 (4/15) | 6.46 / 19.11 (6/15) |
+| SFCPD multi-study flames, 14 targets | 6.39 / 21.77 (6/14) | 6.17 / 21.22 (6/14) | 5.75 / 20.52 (5/14) | 7.42 / 22.46 (5/14) |
+| SFCPD single-source flames, 6 targets | 2.91 / 10.05 (5/6) | 3.31 / 10.97 (5/6) | 3.71 / 12.12 (5/6) | 4.32 / 12.70 (4/6) |
+| SFCPD ignition, 10 targets | 22.45 / 1171.89 (5/10) | 23.82 / 1172.46 (5/10) | 24.64 / 1171.77 (5/10) | 32.27 / 1172.46 (5/10) |
+| ChemKED toluene ignition, 4 points | 32.83 / 83.99 (0/4) | 33.20 / 84.44 (0/4) | 30.32 / 80.07 (2/4) | 18.93 / 55.91 (2/4) |
+
+**Methanol ignition is a major failure of absolute accuracy.** At 1222 K/10.7 atm the parent predicts 1414.88 µs against a 194.19 µs target (7.29 times, +628.61%); at 1130 K/10.43 atm it predicts 6733.25 µs against 529.39 µs (12.72 times, +1171.89%). All reduced models inherit essentially the same discrepancy. The mixture, units and maximum-pressure-gradient definition were checked against the primary methanol methods. No input or diagnostic mismatch was identified, but absent facility histories and further kinetic analysis prevent assigning a specific chemical or apparatus cause. These mechanisms should not be treated as experimentally accurate methanol ignition models over those conditions.
+
+The parent also overpredicts the two lower-temperature toluene delays by about 55% and 84%. Some reduced results move closer to selected observations by offsetting parent bias; that is not evidence of general improvement or successful calibration. No rates were fitted. The primary flame median errors remain around 6–7%, while maxima reach 17–21%; only 4–6 of the 15 points fall within the reported sampling intervals. Thus the useful result is a smaller network with controlled added error, with **limited and uneven absolute experimental accuracy**.
+
+See the [complete point comparisons](results/external_final_comparison/comparison.csv), [evidence-class summaries](results/external_final_comparison/summary.json), and [fuel-specific summaries](results/external_by_fuel.csv). Standalone figures show [primary flames](figures/primary_flames.svg), [all external ignition ratios](figures/external_ignition_ratios.svg), and [toluene delays](figures/toluene_ignition.svg).
+
+The strongest directly checked primary source is Park et al. (2016), DOI [10.1016/j.combustflame.2016.07.004](https://doi.org/10.1016/j.combustflame.2016.07.004), including its publisher-hosted supplementary Table S1. Counterflow twin-flame PIV measurements were nonlinearly extrapolated to zero strain with computational assistance. Their listed 2-sigma speed uncertainties are 0.8–1.5 cm/s at the selected points; phi uncertainty is within 1%. These quantify reported sampling uncertainty, not all extrapolation and interlaboratory systematics. Fuel/air mixtures are reconstructed using dry O2:N2=1:3.76; individual shot compositions were not supplied. Planar adiabatic flames with multicomponent transport and Soret approximate this zero-strain observable, rather than the finite-strain apparatus flow. The paper's modified 'prior USC' model and updated transport differ from the supplied parent, so its published USC curves are not claimed to be reproduced exactly.
+
+For selected methanol shock-tube targets, Burke et al. (2016), DOI [10.1016/j.combustflame.2015.11.004](https://doi.org/10.1016/j.combustflame.2015.11.004), confirms maximum dP/dt and the 5.70/8.55/85.75 mol% methanol/O2/Ar mixture. Its RCM uncertainty is not reassigned to shock-tube measurements. For butadiene, Zhou et al. (2018), DOI [10.1016/j.combustflame.2018.08.006](https://doi.org/10.1016/j.combustflame.2018.08.006), describes several facilities and diagnostics; pressure-gradient versus tangent-onset ambiguity is retained explicitly. Ideal constant volume does not reproduce measured facility pressure histories. ChemKED supplies the toluene OH half-maximum definition and ±10% delay, ±1% temperature uncertainties, with unspecified confidence level; the primary Vasudevan et al. article was not obtained. SFCPD target uncertainties are secondary assessments and sometimes include generic floors. Agreement with them is labeled target consistency, not primary measurement reproduction.
+
+The OH diagnostic is an explicitly qualified mole-fraction proxy: the transcription specifies OH half maximum without identifying the measured signal quantity. Replacing mole fraction by a concentration/number-density proxy proportional to `X_OH P/T` changes the 16 parent/final long-window delays by at most **0.00290%**. Extending integration to 20 ms changes the normal-window OH delay by at most **0.0000108%** across all four models. Reducing initial temperature by 1% lengthens delay by 20.79–23.53%; increasing it by 1% shortens delay by 16.59–18.97%. These sensitivity calculations are neither new observations nor a combined confidence interval. All 56 external pressure-derivative peaks are interior to their trajectories. For the two butadiene points, pressure-tangent onset is 3.01–7.07% earlier than the gradient peak across the models. See [diagnostic checks](results/diagnostic_checks.json) and [OH quantity check](results/OH_quantity_proxy_check.json).
+
+## Numerical and physical consistency
+
+Ignition uses a homogeneous adiabatic fixed-volume ideal-gas reactor. Synthetic fidelity uses maximum dT/dt; external comparisons use the recorded pressure or OH diagnostic. Final reactor tolerances are relative 1e-10, absolute 1e-20, with explicit post-ignition stopping and interior-peak checks. Development and confirmation flames use mixture-averaged transport without Soret. External flames use multicomponent transport with Soret. No radiation or heat loss is included.
+
+Final flame comparisons use ratio=3, slope=0.01, curve=0.02 refinement criteria. Earlier coarse grids were tightened in stages. For all 68 parent ignitions, normal-to-tight integration changed delay by at most 0.0375%. Parent flame changes over all 34 cases were at most 2.881% from coarse to the first refinement, 2.084% at the next refinement, and 1.055% from 0.02/0.04 to 0.01/0.02. Eight representative parent flames additionally refined to 0.005/0.01 changed by at most 0.552% (median 0.410%). Six independent-start/wider-domain checks changed the corresponding fine speeds by at most 0.422%; these combined perturbations do not isolate domain width from initialization effects.
+
+At the compact candidate's limiting rich butadiene flame, matched refinement from 0.01/0.02 to 0.005/0.01 changed its parent-relative error from **9.5894% to 9.5862%**, only −0.00323 percentage points. Parent speed changed from 0.4215821 to 0.4217958 m/s (1343 to 2610 points); the compact speed changed from 0.4620092 to 0.4622298 m/s (1408 to 2365 points). A 900 s parent attempt timed out; a longer retry completed in 1033 s. The analogous rich-toluene check changed the balanced model's error from −3.4949% to −3.4379%. These checks support the tested threshold decisions without establishing a rigorous global discretization bound. See [butadiene](results/compact_boundary_convergence.json) and [toluene](results/aromatic_boundary_convergence.json) paired results.
+
+For the 32 external parent flames with successful coarse/fine pairs, refinement to 0.01/0.02 changed speed by at most 2.187% (median 1.374%). An additional multicomponent/Soret H2 refinement to 0.005/0.01 changed speed by 0.0278%. For the rich n-butane primary flame, the staged 0.005/0.01 parent solve converged in 3003 s on 1859 points, changing speed from 0.21729395 to 0.21823127 m/s (+0.431%). Its converged intermediate 0.0075/0.015 grid changed speed by +0.273%; an earlier direct 1800 s attempt timed out. At the compact model's limiting external rich-butadiene flame, matched multicomponent/Soret refinement changed its parent-relative error from **9.7996% to 9.7373%**, a −0.06234 percentage-point shift, still below 10%. The parent converged on 2596 points at 0.41287270 m/s; the compact model on 2393 points at 0.45307535 m/s. The intermediate paired grid gave 9.7582%. These checks support the finite-grid result while leaving the compact model a narrow margin; they do not establish an asymptotic or domain-wide error bound. The complete [supplementary grid results](results/final_grid_checks.json) retain both intermediate and final stages.
+
+Every retained reaction is exactly element balanced. Surviving species composition, NASA coefficients and transport fields are unchanged. At seven checked temperatures (298–3800 K), retained net reaction rates agree with the parent at identical embedded states to within 2.78e-13 relative difference, and equilibrium constants within 1.44e-14. Analytic polynomial-extremum checks find positive heat capacities over 298–3800 K (minimum Cp/R about 2.5), including the explicitly qualified extrapolated portions.
+
+128 ignition and 86 flame solutions per model, including 12 diagnostic perturbations.
+
+| Species/reactions | Ignition element drift | Ignition relative U drift | Flame relative mass-flux range | Flame boundary element difference | Flame enthalpy defect / sensible heat |
+| --- | --- | --- | --- | --- | --- |
+| 111/784 | 2.28e-14 | 1.35e-09 | 2.53e-08 | 0.000207 | 0.000928 |
+| 93/553 | 5.11e-14 | 7.69e-10 | 1.89e-08 | 0.000203 | 0.00074 |
+| 88/475 | 4.18e-14 | 1.15e-09 | 2.06e-08 | 0.000192 | 0.000735 |
+| 74/433 | 3.86e-13 | 6.52e-10 | 9.64e-10 | 0.000205 | 0.000704 |
+
+These are observed numerical residuals, not exact solution conservation. Across all four models, the largest flame boundary enthalpy defect is 2503 J/kg, or 0.0928% of the product sensible-heat scale; the largest boundary element mass-fraction difference is 2.08e-4. All audited flame inlet temperatures exactly match their manifests, and mass-fraction sums deviate by at most 2.35e-9. The [full physical audit](results/final_physical_audit.json) retains definitions and per-case residuals. The [input consistency audit](results/final_input_consistency.json) separately checks all 808 main production results against frozen physical conditions, mechanism hashes, transport settings and final numerical tolerances; it reports no mismatches.
+
+Preserving original NASA coefficients does not cure inherited problems. Five parent species trigger segment-continuity warnings; the parent enthalpy joins for C4H5-2 and C4H6-2 differ by about 6.52 and 4.41 kJ/mol. Some aromatic intermediate fits terminate below the simulated temperature. The hottest rich acetylene/allene/propyne ignition cases exceed 3500 K (up to about 3750 K); the maximum instantaneous mass fraction outside constituent fit ranges is 30.46% for acetylene and about 30.2% for allene/propyne. They are extrapolation stress tests, not thermochemically validated predictions. They remain in the reported error statistics, with this qualification. Some 298 K flame inlets are also 2 K below a 300 K lower fit bound. These inherited limitations remain in relevant reduced models. Detailed audits are linked in [METHODS.md](METHODS.md).
+
+## What the retrieved evidence changed
+
+- The USC-II scope and validation page motivated retaining hydrogen/CO, C1–C4 and aromatic fuel families, rather than choosing methane alone.
+- Public SFCPD and ChemKED access provided exact observation definitions and mixtures. ReSpecTh's registration barrier and unavailable primary articles limited coverage; no inaccessible source was treated as read.
+- Park's primary paper and supplementary table added directly tabulated C3–C4 flame evidence and established the counterflow extrapolation, uncertainty and transport qualifications. Methanol and butadiene primary methods changed the selected diagnostic interpretation and prevented misuse of RCM or emission uncertainties.
+- pyMARS and the Niemeyer–Sung graph-method study supported the maximum-product implementation and a sensitivity stage. Measured aromatic/butadiene failures, rather than literature compression ratios, triggered the change from uniform graph thresholds to deletion sensitivity.
+- Cantera's reaction-reduction example supported net-flux screening as a candidate heuristic; full macroscopic tests determined acceptance. Numerical convergence evidence required finer grids and additional checks near the compact threshold.
+- The refined compact boundary check supported freezing the smaller 433-reaction version. Strongly pruning it to 394 reactions had exceeded the flame limit. The search then stopped changing chemistry and shifted to independent assessment; this is a local exploratory trade-off, not an optimality claim.
+- The independent confirmation set retained the declared fidelity limits. External comparisons exposed large inherited methanol ignition bias and uneven flame agreement, limiting the recommendation to a reduction with controlled added error. Those findings did not trigger rate fitting, deletion of difficult validation cases or changes to the frozen files. The external compact flame near its tolerance boundary prompted an additional numerical check.
+
+## Reproduction, failures and limitations
+
+[README.md](README.md) gives commands and the archive layout; [METHODS.md](METHODS.md) documents full methods and source qualifications. Exact solver inputs, original reaction indices, downloaded bytes, URL/status/hash records, scalar results, profiles and tracebacks are retained. Small tar archives may remain unextracted for screening batches; their `summary.json` files contain the full scalar outputs. Offline numerical wheels and package versions are supplied. Warm-start profiles are initial guesses only; the solver remains free to change temperature, composition and speed.
+
+An early four-candidate remote job settled without recoverable output. Some large initial archives were only partly collected, requiring recovery of parent trajectories; an output-size limit is the suspected cause rather than a demonstrated scientific failure. The first fine external batch also ended with incomplete archives and a mixture of successful solves and timeouts; its cause was not fully diagnosed. Later jobs used incremental scalar checkpoints, smaller closed archives, direct multicomponent warm starts and explicit longer per-case limits. Failures are retained as failures, not counted as chemical validation or hidden from final success counts.
+
+The final main validation contains **808 successful results** (202 conditions × parent plus three reduced models), with no unresolved failed or missing required case. The 48 OH-window/temperature perturbations also succeed. A parent external rich-isobutane flame that timed out at 1200 s was recovered with staged refinement in 719 s; the 3-atm parent isobutane confirmation flame was recovered with a fresh, staged solve in 392 s. Original failed attempts remain alongside these successful results. The direct extra-fine rich n-butane attempt timed out at 1800 s; its staged retry succeeded in 3003 s within a 3600 s limit. The paired external rich-butadiene refinement also succeeded, in 1670 s for the parent and 477 s for the compact model. All planned supplementary targets now have completed results. All 42 remote jobs are settled, including the early job whose outputs were unavailable; its scientific cases were recomputed in recoverable batches. The [execution ledger](raw/remote_job_ledger_snapshot.json) preserves the final job metadata. Self-review and archive registration are bookkeeping, not independent scientific certification.
+
+The search stops with three quantified size/fidelity choices, a failed stronger-pruning example, completed independent-condition assessment and explicit external-accuracy limits. Further reduction or rate calibration would require a new search and fresh confirmation evidence.
+
+This is a resource-limited exploratory search. Global minimality remains untested, and parameter preservation is not an experimental accuracy certificate. Sparse condition coverage, absent external observations for five fuels/blends, missing lean/rich air-ignition and high-pressure-flame evidence, uncertain facility corrections, inherited thermochemical problems and residual numerical error bound the conclusions.

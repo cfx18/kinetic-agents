@@ -1,0 +1,38 @@
+{
+  "run_id": "expert-v2-kimi-team-20260916T002109.891728Z-d9881267",
+  "task_variant": "expert-v2",
+  "profile": "team",
+  "harness": {
+    "name": "kimi_code_node",
+    "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+  },
+  "model": {
+    "name": "kimi-k3",
+    "reasoning_effort": "max",
+    "context_tokens": 1048576,
+    "max_agents": 3,
+    "researcher_model": "kimi-k3",
+    "researcher_effort": "max"
+  },
+  "lifecycle_metadata": {
+    "status": "COMPLETED",
+    "phase": "postrun_finished",
+    "captured_at": 1789535018.101911
+  },
+  "endpoint_status_metadata": "COMPLETE",
+  "owner_finished_marker_captured": true,
+  "snapshot_label": "ended_run_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:13:45.647622+00:00",
+  "capture_end_utc": "2026-09-16T15:43:26.010774+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 34,
+  "source_file_bytes_retained": 5921285,
+  "source_full_snapshot_files_local_only": 1995,
+  "arm_directory": "team-max",
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

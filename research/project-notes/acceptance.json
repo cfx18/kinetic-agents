@@ -1,0 +1,17 @@
+{
+  "schema": "kinetic-agents-acceptance.v1",
+  "date_utc": "2026-09-15",
+  "unit_and_regression": {"passed": 143, "native_opt_in_skipped_in_default_suite": 2},
+  "native_codex_synthetic_responses": {"passed": 2, "real_model_inference": false},
+  "shared_task": true,
+  "per_mode_task_copies": false,
+  "legacy_python_imports_required": false,
+  "numerical_pins_unchanged": 8,
+  "real_input_prepare_load_profiles": ["solo", "team"],
+  "fresh_runs_started": 0,
+  "real_model_calls": 0,
+  "new_remote_jobs": 0,
+  "wheel_and_sdist_private_data_check": "PASS",
+  "failure_history": ["Ceph metadata stalls", "shared-storage native-worker fixture timeout", "native temporary-mount input invisibility"],
+  "limits": ["not a scientific efficacy result", "not remote infrastructure requalification", "not publication authorization", "not pristine blind evaluation"]
+}

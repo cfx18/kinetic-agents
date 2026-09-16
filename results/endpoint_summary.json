@@ -1,0 +1,1059 @@
+{
+  "scope": "Existing captured endpoint results, separate from dated report; not new solver evidence or a global ranking",
+  "endpoint_count": 11,
+  "endpoints": [
+    {
+      "run_id": "baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632",
+      "task_variant": "baseline-v1",
+      "profile": "solo",
+      "model": {
+        "name": "deepseek-flash",
+        "reasoning_effort": "max",
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "c8027279332d27a3e463722295f0817938fcc61af2b81dc2064240f85f33f04a",
+          "mechanism": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/candidate_1.yaml",
+          "species": 66,
+          "reactions": 327,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 530,
+          "coverage": 0.8688524590163934,
+          "missing": 0,
+          "statuses": {
+            "success": 530,
+            "input_incompatible": 80
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.008747062388641
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "dd5b39a9c6a96d9b666a8d8b66c5757e624e857a95c26008def05a10892ada0b",
+          "mechanism": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/candidate_2.yaml",
+          "species": 73,
+          "reactions": 525,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 575,
+          "coverage": 0.9426229508196722,
+          "missing": 0,
+          "statuses": {
+            "success": 575,
+            "input_incompatible": 35
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.0951122961023274
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "1adb01a69bb919c9e10b344612263ba8dde0b03f1ed014bc044d24ac1631f73e",
+          "mechanism": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/candidate_3.yaml",
+          "species": 60,
+          "reactions": 389,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 456,
+          "coverage": 0.7475409836065574,
+          "missing": 0,
+          "statuses": {
+            "input_incompatible": 154,
+            "success": 456
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.0475039923051557
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1",
+      "task_variant": "baseline-v1",
+      "profile": "team",
+      "model": {
+        "name": "deepseek-flash",
+        "reasoning_effort": "max",
+        "max_agents": 3,
+        "researcher_model": "deepseek-flash",
+        "researcher_effort": "max"
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "4505053b2added194e60bbdd6162f5ce4de490fe03759e370a00fea154d5c254",
+          "mechanism": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/candidate_1.yaml",
+          "species": 93,
+          "reactions": 714,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6559939785154403,
+          "successful_subset_mean_abs_sigma": 2.6559939785154403
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "1a06e8cdfbe1b7e3cc70c5716d1f0224064bba9bfd3e65358f98e12d25315e81",
+          "mechanism": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/candidate_2.yaml",
+          "species": 69,
+          "reactions": 522,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 591,
+          "coverage": 0.9688524590163935,
+          "missing": 0,
+          "statuses": {
+            "success": 591,
+            "unresolved_observable": 17,
+            "numerical_failure": 2
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.367311606859388
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "6564dcae49eaf13dbf7a360681f39fe7029b9ee06a6114b2ca84dfbcd3b06073",
+          "mechanism": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/candidate_3.yaml",
+          "species": 63,
+          "reactions": 461,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 547,
+          "coverage": 0.8967213114754098,
+          "missing": 0,
+          "statuses": {
+            "success": 547,
+            "input_incompatible": 45,
+            "unresolved_observable": 17,
+            "numerical_failure": 1
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.1561723632197487
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120",
+      "task_variant": "baseline-v1",
+      "profile": "solo",
+      "model": {
+        "name": "kimi-k3",
+        "reasoning_effort": "max",
+        "context_tokens": 1048576,
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "kimi_code_node",
+        "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "f000f1c44d0ba2d0dbb9fc33f7c86913f4fe2bba2ed28c75bd33b9093a76a1a8",
+          "mechanism": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/candidate_1.yaml",
+          "species": 97,
+          "reactions": 712,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 606,
+          "coverage": 0.9934426229508196,
+          "missing": 0,
+          "statuses": {
+            "success": 606,
+            "input_incompatible": 4
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.7002896275080674
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "38cebfd51a4183c28d5cafb94234e0e41798641e2899160e416200eb20ac3a09",
+          "mechanism": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/candidate_2.yaml",
+          "species": 88,
+          "reactions": 646,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 606,
+          "coverage": 0.9934426229508196,
+          "missing": 0,
+          "statuses": {
+            "success": 606,
+            "input_incompatible": 4
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.838204756400879
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "8d7b0c02a98155ec0228a8b3f6afac0fa8d1a36ad14a6b900e64bdde1af47ee5",
+          "mechanism": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/candidate_3.yaml",
+          "species": 80,
+          "reactions": 566,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 560,
+          "coverage": 0.9180327868852459,
+          "missing": 0,
+          "statuses": {
+            "success": 560,
+            "input_incompatible": 50
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.6167400296514036
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "baseline-v1-kimi-team-20260916T010434.254556Z-33182164",
+      "task_variant": "baseline-v1",
+      "profile": "team",
+      "model": {
+        "name": "kimi-k3",
+        "reasoning_effort": "max",
+        "context_tokens": 1048576,
+        "max_agents": 3,
+        "researcher_model": "kimi-k3",
+        "researcher_effort": "max"
+      },
+      "harness": {
+        "name": "kimi_code_node",
+        "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "477bffd718c5bd539172f9e78ac8b1020a6e00851908c0a5b635c1f8c92958ed",
+          "mechanism": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/candidate_1.yaml",
+          "species": 66,
+          "reactions": 438,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 593,
+          "coverage": 0.9721311475409836,
+          "missing": 0,
+          "statuses": {
+            "success": 593,
+            "input_incompatible": 15,
+            "numerical_failure": 2
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 5.822247776754907
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "f6816daf4c7cd4fc4419e763d491a2e444131a94fc14a5142482e3a3fd94a5a5",
+          "mechanism": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/candidate_2.yaml",
+          "species": 58,
+          "reactions": 361,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 493,
+          "coverage": 0.8081967213114755,
+          "missing": 0,
+          "statuses": {
+            "success": 493,
+            "input_incompatible": 106,
+            "unresolved_observable": 11
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 4.220938053973177
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "8422da6090cc6c56b1871d999762929f0b8552bfc03f19379e80f2c1774d6252",
+          "mechanism": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/candidate_3.yaml",
+          "species": 48,
+          "reactions": 307,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 492,
+          "coverage": 0.8065573770491803,
+          "missing": 0,
+          "statuses": {
+            "success": 492,
+            "input_incompatible": 106,
+            "unresolved_observable": 11,
+            "numerical_failure": 1
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 4.172316384753052
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/baseline-v1-kimi-team-20260916T010434.254556Z-33182164/team-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf",
+      "task_variant": "expert-v2",
+      "profile": "solo",
+      "model": {
+        "name": "deepseek-flash",
+        "reasoning_effort": "max",
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "9eb54804a2c000ca8124baa411a26e445ffacbc1da4aaaf4892d88b5140579e7",
+          "mechanism": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/candidate_1.yaml",
+          "species": 103,
+          "reactions": 751,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.668168817598366,
+          "successful_subset_mean_abs_sigma": 2.668168817598366
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "d2ab46d94218bfeb4d667de8ea4c3a3b794c666ca6dc1495b6b481cb06e200ad",
+          "mechanism": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/candidate_2.yaml",
+          "species": 89,
+          "reactions": 671,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6145547634900996,
+          "successful_subset_mean_abs_sigma": 2.6145547634900996
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "f2f9e4a7e03bb4e14b93199b41528469a08d5faf66fadff526ab285160ed712a",
+          "mechanism": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/candidate_3.yaml",
+          "species": 68,
+          "reactions": 473,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 550,
+          "coverage": 0.9016393442622951,
+          "missing": 0,
+          "statuses": {
+            "success": 550,
+            "input_incompatible": 46,
+            "unresolved_observable": 13,
+            "numerical_failure": 1
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.223672940602105
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970",
+      "task_variant": "expert-v2",
+      "profile": "solo",
+      "model": {
+        "name": "kimi-k3",
+        "reasoning_effort": "max",
+        "context_tokens": 1048576,
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "kimi_code_node",
+        "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "97167e607fd5ffb1baaeffcf329c2f2879abe48ca9c20b3619256354c2d249ff",
+          "mechanism": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/candidate_1.yaml",
+          "species": 86,
+          "reactions": 613,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 599,
+          "coverage": 0.9819672131147541,
+          "missing": 0,
+          "statuses": {
+            "success": 599,
+            "input_incompatible": 11
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.6826888796277504
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "adb2feca6f01509b750f912d8fad0ac4cd89d910083066c5c10acf8bbe36b7cb",
+          "mechanism": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/candidate_2.yaml",
+          "species": 62,
+          "reactions": 370,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 450,
+          "coverage": 0.7377049180327869,
+          "missing": 0,
+          "statuses": {
+            "success": 450,
+            "input_incompatible": 160
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.4853309765070004
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "9dbc17abcffef087f646ce84d2c57d74f4d113eae588bd0f311a2953e6812d06",
+          "mechanism": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/candidate_3.yaml",
+          "species": 49,
+          "reactions": 290,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 377,
+          "coverage": 0.6180327868852459,
+          "missing": 0,
+          "statuses": {
+            "success": 377,
+            "input_incompatible": 233
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.1709368896681553
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "expert-v2-kimi-team-20260916T002109.891728Z-d9881267",
+      "task_variant": "expert-v2",
+      "profile": "team",
+      "model": {
+        "name": "kimi-k3",
+        "reasoning_effort": "max",
+        "context_tokens": 1048576,
+        "max_agents": 3,
+        "researcher_model": "kimi-k3",
+        "researcher_effort": "max"
+      },
+      "harness": {
+        "name": "kimi_code_node",
+        "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "4ad974b68a8655272cdc3de7f4e730c0df4002dd37b1b92f369e0ea7b247d319",
+          "mechanism": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/candidate_1.yaml",
+          "species": 80,
+          "reactions": 614,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.8430463479191346,
+          "successful_subset_mean_abs_sigma": 2.8430463479191346
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "dad9c4a6021f8f22570f45e69754af87fedef6bd55e41fff29e0c143148193e0",
+          "mechanism": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/candidate_2.yaml",
+          "species": 70,
+          "reactions": 563,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 609,
+          "coverage": 0.9983606557377049,
+          "missing": 0,
+          "statuses": {
+            "success": 609,
+            "numerical_failure": 1
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.847181588083955
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "ddcf1f7f2644c89840c69483e6c563a4f7aceae8d9dbb38a265a29726bbc0afd",
+          "mechanism": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/candidate_3.yaml",
+          "species": 70,
+          "reactions": 507,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.894843221285097,
+          "successful_subset_mean_abs_sigma": 2.894843221285097
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/expert-v2-kimi-team-20260916T002109.891728Z-d9881267/team-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "expert-v2-solo-20260915T173616.942323Z-0bbd299d",
+      "task_variant": "expert-v2",
+      "profile": "solo",
+      "model": {
+        "name": "gpt-6-astra",
+        "reasoning_effort": "xhigh",
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "66d77dac9fbdc47c6ad6cd25753b1943efb1341ec94366c7a4ebe54c367d0517",
+          "mechanism": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/candidate_1.yaml",
+          "species": 93,
+          "reactions": 553,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.7035344076988412,
+          "successful_subset_mean_abs_sigma": 2.7035344076988412
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "ddb2cc5e6d0c7b6f2c076217a0f9c3b9c895c1cfa1556a78a5748df104278aa8",
+          "mechanism": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/candidate_2.yaml",
+          "species": 88,
+          "reactions": 475,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.7174395521423196,
+          "successful_subset_mean_abs_sigma": 2.7174395521423196
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "281a90369b734f47810248c1c8d5ed85fd06f759056eb97dc4c8b1a960cb39dc",
+          "mechanism": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/candidate_3.yaml",
+          "species": 74,
+          "reactions": 433,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 595,
+          "coverage": 0.9754098360655737,
+          "missing": 0,
+          "statuses": {
+            "success": 595,
+            "input_incompatible": 15
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.8632569176955163
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "expert-v2-team-20260915T173617.847670Z-2c1bfc9d",
+      "task_variant": "expert-v2",
+      "profile": "team",
+      "model": {
+        "name": "gpt-6-astra",
+        "reasoning_effort": "xhigh",
+        "max_agents": 3,
+        "researcher_model": "gpt-5.5",
+        "researcher_effort": "high"
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/evaluation_result.json",
+      "scorecard": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/scorecard.json",
+      "source_attempts_preserved": [
+        "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "a07cadbbccb696b12e6281ac52a06e2336e0e33260b494b7ed09dbdca92bd444",
+          "mechanism": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/candidate_1.yaml",
+          "species": 58,
+          "reactions": 420,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 553,
+          "coverage": 0.9065573770491804,
+          "missing": 0,
+          "statuses": {
+            "success": 553,
+            "input_incompatible": 57
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.1708672587618953
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "2051a6c35d16086d6a621506f66e3005be0e0a7c7326d9fe381149dd4f7ff2fa",
+          "mechanism": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/candidate_2.yaml",
+          "species": 53,
+          "reactions": 374,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 508,
+          "coverage": 0.8327868852459016,
+          "missing": 0,
+          "statuses": {
+            "success": 508,
+            "input_incompatible": 102
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.942005860746052
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "468c6aedb369853b6a9b65c96bab1eccf9ecb561d459c038e57c466cafbe813e",
+          "mechanism": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/candidate_3.yaml",
+          "species": 49,
+          "reactions": 330,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 449,
+          "coverage": 0.7360655737704918,
+          "missing": 0,
+          "statuses": {
+            "success": 449,
+            "input_incompatible": 148,
+            "unresolved_observable": 13
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.367107442728906
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/expert-v2-team-20260915T173617.847670Z-2c1bfc9d/team-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "solo-20260915T131056.265011Z-108d5c07",
+      "task_variant": "baseline-v1",
+      "profile": "solo",
+      "model": {
+        "name": "gpt-6-astra",
+        "reasoning_effort": "xhigh",
+        "max_agents": 1
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1/combined_result.json",
+      "scorecard": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1/combined_scorecard.json",
+      "source_attempts_preserved": [
+        "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint",
+        "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "a8b14e0121f1310b67d8340c3944f0ec7e2628a9e2dabf366d9c87f265278243",
+          "mechanism": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1/candidate_1.yaml",
+          "species": 101,
+          "reactions": 542,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.674385628857178,
+          "successful_subset_mean_abs_sigma": 2.674385628857178
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "6a8e399a0c705794e452df96c71a70df61a320a211f574e404ad225bf45c5d9e",
+          "mechanism": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1/candidate_2.yaml",
+          "species": 87,
+          "reactions": 513,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6232375066664986,
+          "successful_subset_mean_abs_sigma": 2.6232375066664986
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "35076c27997a116024e001d8b67aa3e79f8d392a1c9a7ab4e00d5c01d9b2cdeb",
+          "mechanism": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint_bulk_v1/candidate_3.yaml",
+          "species": 81,
+          "reactions": 464,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6999652745037905,
+          "successful_subset_mean_abs_sigma": 2.6999652745037905
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/solo-20260915T131056.265011Z-108d5c07/solo-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    },
+    {
+      "run_id": "team-20260915T131059.107037Z-e89a0b43",
+      "task_variant": "baseline-v1",
+      "profile": "team",
+      "model": {
+        "name": "gpt-6-astra",
+        "reasoning_effort": "xhigh",
+        "max_agents": 3,
+        "researcher_model": "gpt-5.5",
+        "researcher_effort": "high"
+      },
+      "harness": {
+        "name": "codex",
+        "executable": "codex"
+      },
+      "status": "COMPLETE",
+      "evaluation_result": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1/combined_result.json",
+      "scorecard": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1/combined_scorecard.json",
+      "source_attempts_preserved": [
+        "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint",
+        "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1"
+      ],
+      "rows_including_parent": 2440,
+      "candidates_including_parent": [
+        {
+          "label": "candidate_1",
+          "sha256": "d82ae41282e84dd026407c576aba3bcdb80a0f395181c27aa8a5602ea5f44599",
+          "mechanism": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1/candidate_1.yaml",
+          "species": 54,
+          "reactions": 392,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 553,
+          "coverage": 0.9065573770491804,
+          "missing": 0,
+          "statuses": {
+            "success": 553,
+            "input_incompatible": 57
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.2698157667038172
+        },
+        {
+          "label": "candidate_2",
+          "sha256": "5becdc5cd5a4aba61233d653fdfba3be343f81bd30f64774597946bdcda736f3",
+          "mechanism": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1/candidate_2.yaml",
+          "species": 56,
+          "reactions": 402,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 553,
+          "coverage": 0.9065573770491804,
+          "missing": 0,
+          "statuses": {
+            "success": 553,
+            "input_incompatible": 57
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 3.2911526270805975
+        },
+        {
+          "label": "candidate_3",
+          "sha256": "d6e50306e2657ea1d0e8604f4f59db80f759aeb9af9e9b5688da5dfc46e1c040",
+          "mechanism": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint_bulk_v1/candidate_3.yaml",
+          "species": 69,
+          "reactions": 461,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 553,
+          "coverage": 0.9065573770491804,
+          "missing": 0,
+          "statuses": {
+            "success": 553,
+            "input_incompatible": 57
+          },
+          "full_pool_mean_abs_sigma": null,
+          "successful_subset_mean_abs_sigma": 2.9104331548305162
+        },
+        {
+          "label": "parent",
+          "sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+          "mechanism": "runs/team-20260915T131059.107037Z-e89a0b43/team-max/endpoint/parent.yaml",
+          "species": 111,
+          "reactions": 784,
+          "case_count": 610,
+          "recorded": 610,
+          "success": 610,
+          "coverage": 1.0,
+          "missing": 0,
+          "statuses": {
+            "success": 610
+          },
+          "full_pool_mean_abs_sigma": 2.6677088561391415,
+          "successful_subset_mean_abs_sigma": 2.6677088561391415
+        }
+      ]
+    }
+  ],
+  "model_calls": 0,
+  "solver_calls": 0,
+  "network_calls": 0
+}

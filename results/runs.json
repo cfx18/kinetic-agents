@@ -1,0 +1,682 @@
+[
+  {
+    "run_id": "baseline-v1-deepseek-solo-20260916T052150.994423Z-6ad6f632",
+    "task_variant": "baseline-v1",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "deepseek-flash",
+      "reasoning_effort": "max",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789568965.313824
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T14:58:21.399092+00:00",
+    "capture_end_utc": "2026-09-16T15:43:21.912069+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5475257,
+    "source_full_snapshot_files_local_only": 1726,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1",
+    "task_variant": "baseline-v1",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "deepseek-flash",
+      "reasoning_effort": "max",
+      "max_agents": 3,
+      "researcher_model": "deepseek-flash",
+      "researcher_effort": "max"
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789563492.1276834
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:02:50.649571+00:00",
+    "capture_end_utc": "2026-09-16T15:43:25.786101+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5915118,
+    "source_full_snapshot_files_local_only": 2506,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120",
+    "task_variant": "baseline-v1",
+    "profile": "solo",
+    "harness": {
+      "name": "kimi_code_node",
+      "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+    },
+    "model": {
+      "name": "kimi-k3",
+      "reasoning_effort": "max",
+      "context_tokens": 1048576,
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789541819.3538437
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:05:03.832645+00:00",
+    "capture_end_utc": "2026-09-16T15:43:25.809237+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5954023,
+    "source_full_snapshot_files_local_only": 1368,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "baseline-v1-kimi-team-20260916T010434.254556Z-33182164",
+    "task_variant": "baseline-v1",
+    "profile": "team",
+    "harness": {
+      "name": "kimi_code_node",
+      "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+    },
+    "model": {
+      "name": "kimi-k3",
+      "reasoning_effort": "max",
+      "context_tokens": 1048576,
+      "max_agents": 3,
+      "researcher_model": "kimi-k3",
+      "researcher_effort": "max"
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789538391.2987432
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:07:20.680687+00:00",
+    "capture_end_utc": "2026-09-16T15:43:25.851365+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5545286,
+    "source_full_snapshot_files_local_only": 580,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "evaluator-compatibility-fix-20260915",
+    "task_variant": "repair_evidence",
+    "profile": null,
+    "harness": null,
+    "model": null,
+    "lifecycle_metadata": {
+      "status": null,
+      "phase": null,
+      "captured_at": null
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": false,
+    "snapshot_label": "repair_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:07:47.826127+00:00",
+    "capture_end_utc": "2026-09-16T15:07:48.189788+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 0,
+    "source_file_bytes_retained": 0,
+    "source_full_snapshot_files_local_only": 94,
+    "arm_directory": null,
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-deepseek-solo-20260916T052223.859010Z-0831cedf",
+    "task_variant": "expert-v2",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "deepseek-flash",
+      "reasoning_effort": "max",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789563178.8602157
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:07:48.181171+00:00",
+    "capture_end_utc": "2026-09-16T15:50:55.950539+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5958330,
+    "source_full_snapshot_files_local_only": 3354,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-deepseek-team-20260916T052224.968435Z-3341f0b6",
+    "task_variant": "expert-v2",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "deepseek-flash",
+      "reasoning_effort": "max",
+      "max_agents": 3,
+      "researcher_model": "deepseek-flash",
+      "researcher_effort": "max"
+    },
+    "lifecycle_metadata": {
+      "status": "PREPARED",
+      "phase": "launched",
+      "captured_at": 1789536148.5018961
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": false,
+    "snapshot_label": "nonterminal_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:09:07.925440+00:00",
+    "capture_end_utc": "2026-09-16T15:43:25.928234+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 7,
+    "source_file_bytes_retained": 8893,
+    "source_full_snapshot_files_local_only": 8185,
+    "arm_directory": null,
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-kimi-solo-20260916T002108.637960Z-d26b7970",
+    "task_variant": "expert-v2",
+    "profile": "solo",
+    "harness": {
+      "name": "kimi_code_node",
+      "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+    },
+    "model": {
+      "name": "kimi-k3",
+      "reasoning_effort": "max",
+      "context_tokens": 1048576,
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789536614.3825269
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:11:13.619145+00:00",
+    "capture_end_utc": "2026-09-16T15:43:25.968224+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5394230,
+    "source_full_snapshot_files_local_only": 6775,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-kimi-team-20260916T002109.891728Z-d9881267",
+    "task_variant": "expert-v2",
+    "profile": "team",
+    "harness": {
+      "name": "kimi_code_node",
+      "executable": "/root/shared-nvme/Caifeixue/AgentCFD/AgentCFD_Terminal_Bench/.harness-runtime/kimi-code-0.28.1/node_modules/@moonshot-ai/kimi-code/dist/main.mjs"
+    },
+    "model": {
+      "name": "kimi-k3",
+      "reasoning_effort": "max",
+      "context_tokens": 1048576,
+      "max_agents": 3,
+      "researcher_model": "kimi-k3",
+      "researcher_effort": "max"
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789535018.101911
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:13:45.647622+00:00",
+    "capture_end_utc": "2026-09-16T15:43:26.010774+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5921285,
+    "source_full_snapshot_files_local_only": 1995,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-solo-20260915T173616.942323Z-0bbd299d",
+    "task_variant": "expert-v2",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789513134.3105314
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:15:24.753230+00:00",
+    "capture_end_utc": "2026-09-16T15:43:26.047589+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5769788,
+    "source_full_snapshot_files_local_only": 11499,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-solo-20260916T051339.728593Z-ffaa512c",
+    "task_variant": "expert-v2",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789535803.770735
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:29:26.164377+00:00",
+    "capture_end_utc": "2026-09-16T15:43:26.086825+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 13240,
+    "source_full_snapshot_files_local_only": 173,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-team-20260915T173617.847670Z-2c1bfc9d",
+    "task_variant": "expert-v2",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 3,
+      "researcher_model": "gpt-5.5",
+      "researcher_effort": "high"
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789501792.7418277
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:29:28.849109+00:00",
+    "capture_end_utc": "2026-09-16T15:35:08.901257+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 34,
+    "source_file_bytes_retained": 5362605,
+    "source_full_snapshot_files_local_only": 10948,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "expert-v2-team-20260916T051340.981285Z-f13834c4",
+    "task_variant": "expert-v2",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 3,
+      "researcher_model": "gpt-5.5",
+      "researcher_effort": "high"
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789535804.7322266
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:35:08.834742+00:00",
+    "capture_end_utc": "2026-09-16T15:36:19.033880+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 19406,
+    "source_full_snapshot_files_local_only": 2848,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "solo-20260915T124435.326800Z-b5e7bb94",
+    "task_variant": "baseline-v1",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789476851.4007103
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:36:18.982839+00:00",
+    "capture_end_utc": "2026-09-16T15:36:22.265880+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 11307,
+    "source_full_snapshot_files_local_only": 140,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "solo-20260915T131056.265011Z-108d5c07",
+    "task_variant": "baseline-v1",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789484695.1320193
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:36:22.245672+00:00",
+    "capture_end_utc": "2026-09-16T15:43:26.149157+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 57,
+    "source_file_bytes_retained": 12023918,
+    "source_full_snapshot_files_local_only": 13423,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "solo-20260916T051331.853373Z-34fd4cfb",
+    "task_variant": "baseline-v1",
+    "profile": "solo",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 1
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789535802.9227834
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:42:27.674249+00:00",
+    "capture_end_utc": "2026-09-16T15:42:48.519235+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 13191,
+    "source_full_snapshot_files_local_only": 1107,
+    "arm_directory": "solo-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "team-20260915T124436.673430Z-e2bbcac4",
+    "task_variant": "baseline-v1",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 3,
+      "researcher_model": "gpt-5.5",
+      "researcher_effort": "high"
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789476852.3142116
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:42:48.515778+00:00",
+    "capture_end_utc": "2026-09-16T15:42:50.380250+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 11517,
+    "source_full_snapshot_files_local_only": 141,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "team-20260915T131059.107037Z-e89a0b43",
+    "task_variant": "baseline-v1",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 3,
+      "researcher_model": "gpt-5.5",
+      "researcher_effort": "high"
+    },
+    "lifecycle_metadata": {
+      "status": "COMPLETED",
+      "phase": "postrun_finished",
+      "captured_at": 1789481931.7139852
+    },
+    "endpoint_status_metadata": "COMPLETE",
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "ended_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:42:49.681445+00:00",
+    "capture_end_utc": "2026-09-16T15:44:42.393064+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 57,
+    "source_file_bytes_retained": 11487039,
+    "source_full_snapshot_files_local_only": 4558,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  },
+  {
+    "run_id": "team-20260916T051338.411952Z-5d8d631c",
+    "task_variant": "baseline-v1",
+    "profile": "team",
+    "harness": {
+      "name": "codex",
+      "executable": "codex"
+    },
+    "model": {
+      "name": "gpt-6-astra",
+      "reasoning_effort": "xhigh",
+      "max_agents": 3,
+      "researcher_model": "gpt-5.5",
+      "researcher_effort": "high"
+    },
+    "lifecycle_metadata": {
+      "status": "CANCELLED",
+      "phase": "postrun_finished",
+      "captured_at": 1789535803.1732326
+    },
+    "endpoint_status_metadata": null,
+    "owner_finished_marker_captured": true,
+    "snapshot_label": "cancelled_run_evidence_snapshot",
+    "capture_start_utc": "2026-09-16T15:43:26.179613+00:00",
+    "capture_end_utc": "2026-09-16T15:44:47.138792+00:00",
+    "distribution_scope": "results_only",
+    "raw_logs_distributed": false,
+    "source_files_retained": 11,
+    "source_file_bytes_retained": 18991,
+    "source_full_snapshot_files_local_only": 172,
+    "arm_directory": "team-max",
+    "notes": [
+      "Generated inventory from captured metadata, not a reconstructed trajectory.",
+      "Raw logs are retained locally and NOT replaced by synthetic records.",
+      "Capture dates describe historical evidence, not current live state."
+    ]
+  }
+]

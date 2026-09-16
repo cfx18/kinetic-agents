@@ -1,0 +1,19 @@
+base: common.yaml
+profile: team
+output_prefix: kimi-team
+harness:
+  name: kimi_code
+  executable: kimi
+backend:
+  auth: api
+  protocol: chat_completions
+  env_file: ../.env
+  base_url_env: KIMI_API_BASE_URL
+  api_key_env: KIMI_API_KEY
+model:
+  name: replace-with-your-model-id
+  reasoning_effort: thinking
+  context_tokens: 128000
+  max_agents: 3
+  researcher_model: replace-with-your-worker-model-id
+  researcher_effort: thinking

@@ -1,0 +1,18 @@
+# Reauthorized 2026-09-16; launch only after native Node acceptance.
+base: expert-v2-common.yaml
+profile: solo
+output_prefix: expert-v2-kimi-solo
+harness:
+  name: kimi_code_node
+  executable: /opt/kinetic-agents-runtime/node_modules/@moonshot-ai/kimi-code/dist/main.mjs
+backend:
+  auth: api
+  protocol: chat_completions
+  env_file: ../.env
+  base_url_env: KIMI_API_BASE_URL
+  api_key_env: KIMI_API_KEY
+model:
+  name: kimi-k3
+  reasoning_effort: max
+  context_tokens: 1048576
+  max_agents: 1

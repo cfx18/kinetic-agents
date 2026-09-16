@@ -1,0 +1,17 @@
+base: common.yaml
+profile: solo
+output_prefix: kimi-solo
+harness:
+  name: kimi_code
+  executable: kimi
+backend:
+  auth: api
+  protocol: chat_completions # 也可 responses 或 anthropic，必须与服务一致
+  env_file: ../.env
+  base_url_env: KIMI_API_BASE_URL
+  api_key_env: KIMI_API_KEY
+model:
+  name: replace-with-your-model-id
+  reasoning_effort: thinking # Kimi 是 thinking/off，不伪装成 Astra 的 xhigh
+  context_tokens: 128000 # 填实际模型的上下文容量
+  max_agents: 1

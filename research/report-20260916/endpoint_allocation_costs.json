@@ -1,0 +1,102 @@
+[
+  {
+    "group": "GPT 普通 Team",
+    "job": "7950590",
+    "state": "COMPLETED",
+    "elapsed_seconds": 468,
+    "allocated_cores": 64,
+    "allocated_core_hours": 8.32,
+    "start_slurm_local_UTC_plus_8": "2026-09-15T23:09:37",
+    "end_slurm_local_UTC_plus_8": "2026-09-15T23:17:25"
+  },
+  {
+    "group": "GPT 普通 Solo",
+    "job": "7950591",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1053,
+    "allocated_cores": 64,
+    "allocated_core_hours": 18.72,
+    "start_slurm_local_UTC_plus_8": "2026-09-15T23:09:38",
+    "end_slurm_local_UTC_plus_8": "2026-09-15T23:27:11"
+  },
+  {
+    "group": "GPT 专家 Team",
+    "job": "7952114",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1119,
+    "allocated_cores": 64,
+    "allocated_core_hours": 19.893333333333334,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T03:30:39",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T03:49:18"
+  },
+  {
+    "group": "GPT 专家 Solo",
+    "job": "7952916",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1564,
+    "allocated_cores": 64,
+    "allocated_core_hours": 27.804444444444446,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T06:32:18",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T06:58:22"
+  },
+  {
+    "group": "Kimi 专家 Team",
+    "job": "7953925",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1516,
+    "allocated_cores": 64,
+    "allocated_core_hours": 26.95111111111111,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T12:37:50",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T13:03:06"
+  },
+  {
+    "group": "Kimi 专家 Solo",
+    "job": "7954173",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1233,
+    "allocated_cores": 64,
+    "allocated_core_hours": 21.92,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T13:09:03",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T13:29:36"
+  },
+  {
+    "group": "Kimi 普通 Team",
+    "job": "7954669",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1185,
+    "allocated_cores": 64,
+    "allocated_core_hours": 21.066666666666666,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T13:39:37",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T13:59:22"
+  },
+  {
+    "group": "Kimi 普通 Solo",
+    "job": "7955465",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1674,
+    "allocated_cores": 64,
+    "allocated_core_hours": 29.76,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T14:28:44",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T14:56:38"
+  },
+  {
+    "group": "DeepSeek 专家 Solo",
+    "job": "7958608",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1784,
+    "allocated_cores": 64,
+    "allocated_core_hours": 31.715555555555557,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T20:22:57",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T20:52:41"
+  },
+  {
+    "group": "DeepSeek 普通 Team",
+    "job": "7958655",
+    "state": "COMPLETED",
+    "elapsed_seconds": 1519,
+    "allocated_cores": 64,
+    "allocated_core_hours": 27.004444444444445,
+    "start_slurm_local_UTC_plus_8": "2026-09-16T20:32:16",
+    "end_slurm_local_UTC_plus_8": "2026-09-16T20:57:35"
+  }
+]

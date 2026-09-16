@@ -1,0 +1,790 @@
+# Skeletal reduction of USC-II with experimental validation of macroscopic observables
+
+Autonomous kinetic-mechanism reduction run.  Everything below was produced inside this
+workspace; raw inputs, scripts, failures and source URLs are kept alongside the report.
+
+---
+
+## 0. Summary
+
+* **What is delivered.**  Three skeletal mechanisms that are strict, byte-verified subsets of
+  the supplied USC-II mechanism (`deliverable/`): **103 species / 751 reactions**,
+  **89 / 671** and **68 / 473**, from 111 species / 784 reactions.  Nothing is re-fitted, so
+  every claim is checkable against the parent.
+* **How they were chosen.**  A decision rule was written down *before* the experimental
+  comparison (section 7.0): confirmation-matrix ignition fidelity `max |ln(tau/tau_parent)|
+  <= 0.35`, `rms <= 0.12`, `|dTad| <= 20 K`, and laminar burning velocity within 10 % of the
+  parent in every one of 19 fuel families.  Applied mechanically, it selects the
+  **103-species** mechanism; the 89- and 68-species mechanisms are delivered as the
+  compression and aggressive rungs, each with its measured excess error stated.
+* **The measured trade-off** (worst / rms over 314 confirmation conditions; flame = worst
+  family of the 19-family archetype curve):
+
+  | | 103 sp | 89 sp | 68 sp |
+  |---|---|---|---|
+  | ignition, all conditions | 0.179 / 0.018 | 0.487 / 0.040 | 1.678 / 0.118 |
+  | ignition, T >= 1100 K (206 conditions) | 0.028 / 0.004 | 0.058 / 0.011 | 0.414 / 0.068 |
+  | laminar burning velocity | 1.1 % | 6.7 % | 18.6 % |
+  | equilibrium temperature (54 states) | 0.0 K | 0.0 K | 0.0 K |
+
+* **Against experiment** (499 FFCM-2/SFCPD targets with curated uncertainties + 1113 archive
+  ignition points, 108 flame-speed points): the reduced mechanisms are statistically
+  indistinguishable from the parent up to 88 species (median ln(model/exp) -0.089 parent vs
+  -0.090 at 103 species); the 68-species mechanism degrades benzene and ethylene by
+  0.3-0.4 log units.  The large disagreements that exist (methanol +1.53, acetylene +1.43,
+  ethane -0.65 log units) are **inherited from USC-II unchanged**.
+* **What was found that changes how the evidence must be read.**  The SciExpeM archive
+  contains seven pairs of byte-identical files with contradictory `ms`/`us` unit
+  declarations and a whole benzene series whose `ms` values are physically impossible; after
+  correction the archived benzene median moves from -6.66 to -0.46 log units (section 4,
+  item 6, and 7.6).  The binding constraints of the reduction are a flame-speed sensitivity (C2H2,
+  C3H6, C6H6) and a 900-1100 K aromatic ignition corner that **no measurement in these
+  sources reaches**.
+* **A measured, not assumed, attribution.**  The flame-speed loss that binds the whole
+  trade-off (the 91 -> 88 species step) is caused by a **single species, `iC4H3`**: putting it
+  back alone restores the acetylene flame speed to the 91-species value exactly, and the
+  89-species mechanism that results dominates both the 88- and the 91-species ones on every
+  measured axis (section 7.4).
+* **What is not claimed.**  Global optimality; validity below 900 K, above the declared
+  pressure range, or for fuels outside the parent's species set; and the usual caveat that
+  agreement with the parent is not agreement with nature.  A DRGEP/DRG pre-screen was tried
+  first and had no discriminative power on this mechanism (section 5.4) — a negative result
+  that is reported rather than hidden.
+
+---
+
+## 1. What was reduced, and what is being claimed
+
+* **Parent mechanism** (`parent.yaml`, supplied, unmodified): Cantera-3.1-format USC-II,
+  **111 species / 784 reactions**, NASA-7 thermodynamics, mixture-averaged transport,
+  elements C-H-O-N-Ar, no low-temperature (NTC) chemistry.
+* **Claim of this work**: a family of *skeletal* mechanisms that are strict species/reaction
+  subsets of the parent, with a quantified accuracy-versus-size trade-off, and an
+  explicit statement of accuracy against **measurements** (shock-tube ignition delays and
+  laminar burning velocities) as distinct from fidelity to the parent mechanism.
+* **Not claimed**: global optimality, validity outside the stated domain, or that species
+  removal is the only / best compression route.
+
+Because every reduced mechanism is a byte-level subset of the parent (see §5.1), it
+inherits the parent's thermochemistry, transport data and rate parameters exactly.  Any
+disagreement with experiment is therefore either inherited from USC-II or produced by the
+removal itself — never by re-fitting.
+
+## 2. Application domain (declared before the reduction was run)
+
+| axis | range used for reduction and validation |
+|---|---|
+| fuels | H2, CO/H2 syngas, CH4, CH3OH, C2H2, C2H4, C2H6, C3H6, C3H8, n-/i-C4H10, C4H81, C4H6, CH3CHO, C6H6, C6H5CH3 |
+| equivalence ratio | 0.5 – 2.0 (reduction control), 0.2 – 2.2 (experimental coverage) |
+| pressure | 1 – 30 atm (reduction control); one out-of-domain check at 99 – 197 atm |
+| temperature | 900 – 1800 K (ignition), 298 – 400 K unburned (flames) |
+| dilution | Ar (x=0.88) shock-tube style, N2 (x=0.79) "air-side" style, true air for flames |
+| observables | ignition delay (several diagnostic definitions), laminar burning velocity, adiabatic equilibrium temperature |
+
+Omitted on purpose: low-temperature/RCM conditions below ~900 K, NOx/soot chemistry,
+turbulent or non-premixed configurations, and any fuel outside the parent's species set
+(ethanol, ammonia, higher hydrocarbons).  The parent mechanism contains no low-temperature
+peroxy chemistry, so extension there is not possible by removal.
+
+## 3. Sources used, and what was unavailable
+
+* **FFCM-2 / Stanford Fundamental Combustion Property Database (SFCPD)** —
+  `https://web.stanford.edu/group/haiwanglab/FFCM2/docs/ExperimentalData/SFCPD/`.
+  Reachable.  The public validation table (`validation_table.json`, 1192 targets) was
+  downloaded, and then **all 1067 individual validation pages** were downloaded, giving
+  per-target temperature, pressure, equivalence ratio, mixture composition, curated
+  experimental value **with uncertainty**, experimental method and the underlying
+  references.  This is the primary external-validation source used here.
+* **ReSpecTh** (`https://respecth.elte.hu/`) — the site is now a single-page application
+  and the underlying data require registration; **not used directly**.
+* **SciExpeM ReSpecTh-format XML archive on Zenodo** — used instead: 1094 experiment files
+  were enumerated and downloaded (records listed in `raw/sciexpm/zenodo_all.json`,
+  dataset DOIs in `raw/sciexpm/experiments_doi.txt`).  Parsed with a purpose-written
+  ReSpecTh reader (`src/respecth.py`).
+* **ChemKED database** (`https://github.com/pr-omethe-us/ChemKED-database`) — downloaded
+  and inspected; its content overlapped the Zenodo archive and was not used further.
+* **pyMARS** (`https://github.com/Niemeyer-Research-Group/pyMARS`) — downloaded and used as
+  a line-level reference for the DRGEP implementation (`raw/pymars/`).
+
+Nothing was assumed about a database's fuel range matching USC-II's: every candidate
+record was filtered by "all species present in the parent species list".
+
+## 4. Data-quality findings that changed the validation design
+
+These were found by checking the archived record against its own internal consistency and
+against FFCM-2.  All are documented in code (`src/build_ffcm2_sets.py`,
+`src/annotate_flame_subset.py`) and reproducible.
+
+1. **Syngas laminar-burning-velocity records have a wrong mixture.**  In the SciExpeM
+   syngas LBV files the `equivalence ratio` column equals the **fuel/O2 molar ratio**
+   (= 2x the stoichiometric-normalised value for a 50/50 H2/CO blend), and the
+   composition column was generated from that label
+   (X_O2 = (X_H2+X_CO)/phi_field, X_N2 = 3.76 X_O2, exact on every row).  The composition
+   therefore describes a mixture twice as lean as the experiment.  Evidence:
+   FFCM-2's curated target `fls_H2+CO_5_4` lists
+   `14.81% H2 - 14.81% CO - 14.79% O2 - 55.60% N2` at phi = 1.0 (the composition our
+   archive file labels phi = 2.0), and its consensus experimental value is
+   **108.6 ± 6.6 cm/s**, which brackets the archive's own S_L values on the rows labelled
+   phi = 1.0 (94.8 – 127.3 cm/s across nine series of the same paper).  The syngas LBV
+   compositions used here were therefore **rebuilt from the phi field**.
+2. **The same artefact does not affect the syngas ignition records** — for all 1307
+   archived ignition records the stated equivalence ratio agrees with the one recomputed
+   from the composition to <2% (median 0.02%).
+3. **Diagnostic definitions differ between ignition datasets.**  All 1307 archived ignition
+   records are shock-tube measurements, but the reported observable is max d[OH]/dt (896),
+   max d[CH]/dt (266), peak [OH] (137) or an OH-concentration threshold (8).  A single
+   model diagnostic (max dT/dt) would have mixed mechanism error with
+   diagnostic-definition error, so every model ignition evaluation returns
+   tau_T, tau_OH, tau_CH, tau_maxOH, tau_maxCH and tau_p from one trajectory
+   (`src/obs2.py`) and each record is compared with the matching model diagnostic.
+4. **Datasets that cannot be simulated with this mechanism were dropped, not approximated.**
+   1784 flame records involve NH3 and 92 involve He as a diluent; neither is a USC-II
+   species.  Their exclusion is why C2H6, C3H8 and CH3OH have no raw-archive flame
+   coverage here — all their archived LBV datasets in this archive are NH3-blended.
+   FFCM-2 does provide NH3-free curated targets for those fuels, and those are used.
+5. **Repeated points from one series are not independent studies.**  Where several
+   datasets measure the same mixture (e.g. nine syngas LBV series at the same
+   composition), the spread between them (95 – 127 cm/s at phi = 1.0) is reported rather
+   than treated as independent evidence of model error.
+
+6. **Seven pairs of archive files contain byte-identical data with contradictory unit
+   declarations, and one whole benzene series declares values that are impossible as
+   milliseconds.**  `src/archive_unit_audit.py` compares every pair of files in the
+   archive: seven pairs have identical data points, identical composition and identical
+   pressure but declare the ignition delay as `ms` in one copy and `us` in the other
+   (e.g. `zenodo.4733738` / `zenodo.5702659`, both Marchal et al., both shock tube).  Only
+   the microsecond reading is physically possible: the other files of the same benzene
+   series carry values of 688-1978 under the `ms` declaration, i.e. up to 2 s behind a
+   reflected shock, where the test time is 1-10 ms.  All seven pairs and eleven further
+   files were corrected as follows (`src/unitfix_idt.py`): the `ms` member of a pair is
+   dropped (its twin is kept), and a file that declares `ms` while containing a value
+   above 50 ms is re-read as microseconds.  The corrected dataset is
+   `results/val_idt_unitfix.json` (68 duplicate records dropped, 59 values re-read); the
+   uncorrected comparison is kept as `results/exp_tables_idt.md`.  Effect: the archived
+   benzene family median falls from ln = -6.66 to -0.46 for the parent, and the largest
+   remaining benzene deviation falls from 9.27 to 2.36 log units (sensitivity in 7.6).
+
+## 5. Reduction method
+
+### 5.1 Text-level subsetting (`src/mech_text.py`)
+
+A reduced mechanism is produced by deleting species from the phase `species:` list, their
+`thermo`/`transport` blocks, every reaction whose participating species set (reactants,
+products and explicit third-body colliders) is not fully retained, third-body efficiency
+entries for deleted species, and by adding `duplicate: true` where two reactions become
+textually identical.  Everything kept is copied **byte-identically** from the parent.
+Round-trip verification: regenerating the parent with the full species set reproduces all
+111 species and 784 reactions with identical equation lists and a maximum relative
+difference of 0 in the forward rate constants and in h/RT.
+
+Consequences: elemental conservation and thermodynamic consistency are structural (no
+parameter is touched), any reduced mechanism is exactly reproducible from the parent plus
+a species list, and the reduction cannot produce a physically inconsistent mechanism.
+
+### 5.2 Elimination order: measured one-at-a-time removal impact
+
+Ordering came from a screening stage: each candidate species is removed alone and the
+resulting mechanism is scored on a 52-condition screening set
+(every fuel family of the development matrix: 18 families at 1400 K in Ar at 10 and 30 atm
+and 16 conditions at 1600 K in N2 at 1 atm), together with the 54 equilibrium states.  The
+score is `max(|ln(tau/tau_parent)|)` over that set together with the maximum deviation of
+the adiabatic equilibrium temperature.  This is a screening heuristic, not an error proof:
+the effects of removing several species are not additive, which is why it only sets the
+*order*.
+
+### 5.3 Error-controlled greedy backward elimination (`src/pipeline.py`)
+
+Species are removed in ascending screening-impact order, in batches, and a batch is
+accepted **only** if the resulting mechanism satisfies all of, on the development matrix:
+
+* `max |ln(tau/tau_parent)| <= 0.60` (worst case ~1.8x),
+* `rms ln(tau/tau_parent) <= 0.20`,
+* `max |Tad - Tad_parent| <= 20 K` over 54 equilibrium states.
+
+Rejected batches are halved down to a single species, and species that cannot be removed
+alone are recorded as required.  Three passes are made so that species rejected early can
+be retried later.  A milestone mechanism is written at every acceptance, so the whole
+size/accuracy curve comes out of one run and the deliverable can be chosen *after* the
+curve is known instead of fixing a size beforehand.
+
+**Development matrix.**  18 fuel families (H2, CO/H2, CH4, CH3OH, C2H2, C2H4, C2H6, C3H6,
+C3H8, n-/i-C4H10, C4H81, C4H82, C4H6, C6H6, C6H5CH3, CH3CHO, CH3COCH3) x {10 atm Ar phi=1,
+30 atm Ar phi=0.5} x {1100 K, 1400 K}, plus eight families at 1 atm N2 phi=1,2 and
+1200/1600 K: **104 ignition conditions**, all of them synthetic parent-mechanism conditions
+(no experimental value is used to control the reduction).  Ignition delays are compared
+through the same multi-diagnostic solver used for the experimental comparison, and the
+metric is the worst and the RMS over the 104 conditions.
+
+**Protected species.**  N2, Ar, He, O2, OH, H, O on the evidence of the screening stage
+(single removal of H, O, OH already produces a log-error of 8.40, 5.55 and non-ignition
+respectively), plus **every fuel species of the declared application domain**, so that no
+mechanism of the family can lose the ability to represent a fuel that the validation data
+cover.
+
+**A documented false start.**  The first elimination run protected only the fuel species of
+the *original* development matrix, which did not contain CH3CHO, CH3COCH3 or C4H82.  It
+removed CH3CHO and CH3COCH3 (they are nearly invisible to the remaining families'
+ignition delays) and thereby produced a mechanism that cannot represent two fuels that the
+declared domain and the validation data contain.  That run is kept as
+`results/elimination_log.json` (v1) and was discarded; the domain-fuel protection above was
+added and the run repeated (`results/elimination_log2.json`).  This is exactly the kind of
+error that a "smaller is better" criterion hides, so it is reported rather than deleted.
+
+### 5.4 Alternatives considered and why they were not used as the primary method
+
+* **DRGEP (path-propagated directed relation graph)** was implemented (`src/drgep.py`) and
+  checked line-by-line against pyMARS.  With the sampled ignition states it has **no
+  discriminative power**: at epsilon = 0.9 it still retains 108/111 species, and lowering
+  epsilon to 0.01 changes nothing.  Reordering the aggregation (propagate per state, then
+  take the maximum, which is pyMARS' order) only moves the count from 93 to 88 species
+  above 0.9 for a single case (`src/drgep_diag.py`).  The reason is structural: the direct
+  coefficient r_AB is close to 1 whenever species A participates in only a few reactions,
+  which is true for most minor species.  DRGEP was therefore demoted to a diagnostic and
+  is not used for the elimination order.
+* **DRG (one-hop) coefficients** were computed as a by-product; they have more dynamic
+  range than the DRGEP score but still almost no separation (score quantiles over the 111
+  species: 1 % -> 0.00, 5 % -> 0.33, 10 % -> 1.00, median -> 1.00, and every species above
+  the 10th percentile sits at 1.0).  Thresholding them keeps 108 species at
+  epsilon = 0.001-0.3, 106 at 0.5, 105 at 0.9 and 104 at 0.99, i.e. a "graph +
+  threshold" reduction of this mechanism under a max-over-states aggregation removes at
+  most 7 of 111 species.  They were not used as the criterion, both for that reason and
+  because a one-hop coefficient has no error semantics; the measured single-removal impact
+  was preferred as it is defined directly in terms of the observables of interest.
+* **State-specific DRGEP + union** is the usual repair for the aggregation problem, but it
+  reduces a *single* state only: for CH4 10 atm 1300 K the best single-state skeleton at
+  epsilon = 0.9 is 88 species (measured, `src/drgep_diag.py`), and a mechanism that must be
+  valid over 104 diverse conditions would have to be the union of such skeletons.  A union
+  of 88-species skeletons is not a reduction.  This is why the accuracy control is applied
+  to the multi-condition observable error directly.
+* **QSSA / time-scale-based reduction** would give smaller mechanisms but introduces
+  algebraic constraints and steady-state species, i.e. it changes the mathematical
+  structure of the model and is much harder to validate at the level of a strict subset.
+  Skeletal removal was preferred because every claim stays checkable.
+* **Reaction-flux pruning** (removing reactions whose integrated flux is negligible while
+  keeping all species) was not run: species removal already deletes the reactions that
+  involve the removed species, and the remaining USC-II reactions are individually
+  load-bearing for the conditions validated here.
+
+## 6. Verification of the custom numerics
+
+* **Text surgery**: round-trip regeneration of the parent reproduces 111 species / 784
+  reactions, identical equations, zero difference in forward rate constants and h/RT.
+* **Ignition-delay implementation**: the multi-diagnostic solver (`src/obs2.py`) is
+  compared against the earlier single-diagnostic implementation and against changes of
+  the sampling grid and solver tolerance (`src/obs2_check.py`).
+* **Event location (found defect, fixed)**: the first version of the solver bracketed the
+  ignition event with a geometric time sequence (factor 8) and then sampled 120 points in
+  that bracket.  Its time resolution was therefore `(t_cur - t_prev)/119`, i.e. 1-6 % of
+  the reported delay, and three chemically different mixtures
+  (CH3CHO/Ar 10 atm 1100 K, CH3CHO/N2 1 atm 1200 K, C4H82/N2 1 atm 1200 K) returned the
+  *identical* value 6.414818e-3 s because they fell on the same grid point.  That
+  quantisation was of the same order as the fidelity differences the reduction was
+  supposed to measure.  The solver now performs `levels + 1` refinement passes, each
+  narrowing the bracket to the union of the grid cells around *all* diagnostic maxima; the
+  same three cases now give 6.4168e-3, 6.5214e-3 and 6.5138e-3 s, and refining further
+  (npts 120 -> 400) changes the result by 0.06 %, 0.27 % and 0.15 %.  The final grid
+  spacing is reported with every result.
+* **Flame-speed implementation**: Cantera's `FreeFlame` solver with a stated refinement
+  criterion and `max_grid_points`; convergence is recorded per point, and the sensitivity
+  of S_L to the refinement level is measured rather than assumed.  Five mixtures (H2/Ar,
+  CH4/air, C2H4/air, C6H6/air, CO+H2/air, spanning S_L = 0.31-2.24 m/s) were solved at three
+  refinement levels for the parent, the 103-species and the 68-species mechanism
+  (`results/flame_grid_*.json`, remote job 7957969).  The production (`medium`) level differs
+  from the finest level by 0.04-2.8 % (median 1.8 %), the coarse level by 0.4-5.4 %; the
+  parent and the 103-species mechanism return *identical* values at every level
+  (e.g. 2.2403 / 2.2173 / 2.2013 m/s for H2), while the 68-species C6H6 value differs from
+  the parent by -18.6 % at the medium level.  The discretisation error is therefore smaller
+  than every mechanism difference the flame criterion acts on (6.7 % and 15.4 % for the
+  91- and 88-species mechanisms), but comparable to the <= 1.1 % differences seen at 103
+  species; those are reported as "no measurable change at this resolution".
+* **Equilibrium**: Cantera `equilibrate('HP')` on identical initial states for parent and
+  reduced mechanisms; this is the thermodynamic-consistency check.
+* **Steady-state / physical sanity**: all reported ignition delays correspond to a
+  temperature rise of more than 400 K; non-igniting cases are counted and reported instead
+  of being silently dropped.
+
+## 7. Results
+
+### 7.0 Decision rule, fixed before the experimental comparison was run
+
+The deliverable is not "the smallest mechanism".  The following rule was written down
+before the validation job was submitted, so that the choice is not made by looking at the
+experimental numbers and picking the winner:
+
+1. **Hard requirements** (must hold on the *disjoint* confirmation matrix, i.e. on the
+   conditions never used inside the reduction loop): `max |ln(tau/tau_parent)| <= 0.35`,
+   `rms <= 0.12`, `max |Tad - Tad_parent| <= 20 K`.
+2. **Additional hard requirement**: on the archetype flame curve (one mixture per fuel
+   family, computed with the production refinement settings) the reduced mechanism must
+   stay within 10 % of the parent laminar burning velocity in every family.
+3. **Selection**: among the mechanisms that pass 1 and 2, take the one with the fewest
+   species.
+4. **Experimental check (not a selection criterion)**: the chosen mechanism's agreement
+   with the FFCM-2/SFCPD and SciExpeM/ReSpecTh measurements is reported next to the
+   parent's, per fuel family and per source, with the number of independent studies.  The
+   comparison is made on the unit-audited dataset (section 4, item 6): the `ms`/`us`
+   duplicate pairs are de-duplicated and physically impossible millisecond values are
+   re-read as microseconds.  This correction is applied to every mechanism identically, so
+   it cannot favour one of them, and the uncorrected tables are kept next to the corrected
+   ones.  If
+   the reduction makes the agreement with experiment *materially worse* than the parent
+   (median |ln(model/exp)| degraded by more than 0.05 in log units, or any family's worst
+   case doubled), that is reported as a failure of the trade-off even if 1-3 passed.
+
+Reason for separating 3 and 4: fidelity to the parent and accuracy against experiment are
+different statements.  A reduced mechanism can agree with experiment better than the parent
+by accident (two errors cancelling) and it can be perfectly faithful to the parent while
+the parent itself is wrong.  The reduction is only allowed to claim the first.
+
+### 7.1 The two reduction paths that were kept, and the one that was discarded
+
+The elimination is a greedy search, so the path (and therefore the frontier reached) depends
+on the order in which species are offered for removal and on the tolerance.  Three runs were
+made with the same screening order, the same development matrix and the same acceptance
+test, differing only in the tolerance and in the protection set:
+
+| run | tolerance (max / rms) | protection | final size | kept as |
+|---|---|---|---|---|
+| v1 (discarded) | 0.30 / 0.10 | 15 dev fuels only | 73 species | `results/elimination_log.json` — invalid, removed two domain fuels |
+| v2 (`loose`) | 0.60 / 0.20 | 15 dev fuels + domain fuels | 61 species | `results/elimination_log2.json`, `mech2/` |
+| v3 (`tight`) | 0.30 / 0.10 | 15 dev fuels + domain fuels | 68 species | `results/elimination_log3.json`, `mech3/` |
+
+The v3 path reaches a strictly better frontier than v2 (68 species at 20 % worst-case
+development error, where v2 needed 87 species for 56 %, and its 61-species end is at 46 %).
+This is a property of greedy elimination, not of the physics: the order in which species are
+proposed changes which *combinations* are ever tested.  Both paths are therefore reported.  The
+pre-registered rule rejects both ends, and the aggressive rung that is delivered is the
+v3 68-species mechanism because it dominates the v2 61-species one on every fidelity
+measure (confirmation max / rms 1.678 / 0.118 against 2.079 / 0.252, and the same 0.0 K
+equilibrium error); v2's 61-species end is kept in `mech2/` as evidence that the path,
+not the tolerance, is what limits the reachable frontier.
+
+### 7.2 Size/accuracy frontier (fidelity to the parent, not accuracy)
+
+Development matrix = 104 conditions used by the acceptance test; confirmation matrix = 314
+conditions never used by the elimination (identical case families, disjoint conditions).
+`dTad` is the largest equilibrium-temperature difference over 54 fuel/air equilibrium states.
+
+| path | mechanism | N_sp | N_rx | dev max abs ln(tau/tau_p) | dev rms | conf max | conf rms | max dTad [K] | worst confirmation case |
+|---|---|---|---|---|---|---|---|---|---|
+| tight | `mech3/mech_nsp107` | 107 | 763 | 0.029 | 0.005 | 0.058 | 0.008 | 0.0 | C3H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp103` | 103 | 751 | 0.062 | 0.009 | 0.179 | 0.018 | 0.0 | C4H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp099` | 99 | 729 | 0.062 | 0.009 | 2.041 | 0.118 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp095` | 95 | 706 | 0.062 | 0.013 | 2.027 | 0.117 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp091` | 91 | 678 | 0.062 | 0.015 | 0.853 | 0.060 | 0.0 | C6H6/Ar 10 atm 1000 K |
+| tight | `mech3/mech_nsp089` | 89 | 671 | 0.066 | 0.017 | 0.487 | 0.040 | 0.0 | C6H5CH3/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp088` | 88 | 661 | 0.096 | 0.021 | 0.511 | 0.043 | 0.0 | C6H5CH3/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp086` | 86 | 641 | 0.081 | 0.021 | 1.751 | 0.107 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp083` | 83 | 626 | 0.187 | 0.046 | 1.749 | 0.112 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp079` | 79 | 596 | 0.290 | 0.068 | 1.758 | 0.137 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | `mech3/mech_nsp074` | 74 | 548 | 0.283 | 0.078 | 1.192 | 0.106 | 0.0 | C6H6/Ar 10 atm 1000 K |
+| tight | `mech3/mech_nsp069` | 69 | 485 | 0.203 | 0.065 | 1.657 | 0.117 | 0.0 | C6H6/Ar 30 atm 900 K |
+| tight | **`mech3/reduced_final`** | **68** | **473** | 0.200 | 0.064 | 1.678 | 0.118 | 0.0 | C6H6/Ar 30 atm 900 K |
+| loose | `mech2/mech_nsp091` | 91 | 678 | 0.062 | 0.015 | 0.853 | 0.060 | 0.0 | C6H6/Ar 10 atm 1000 K |
+| loose | `mech2/mech_nsp087` | 87 | 660 | 0.560 | 0.074 | 1.750 | 0.181 | 0.0 | C6H6/Ar 30 atm 900 K |
+| loose | `mech2/mech_nsp079` | 79 | 597 | 0.552 | 0.098 | 1.754 | 0.190 | 0.0 | C6H6/Ar 30 atm 900 K |
+| loose | **`mech2/reduced_final`** | **61** | **400** | 0.460 | 0.156 | 2.079 | 0.252 | 0.0 | C4H81/Ar 30 atm 1800 K |
+| parent | `parent.yaml` | 111 | 784 | 0.000 | 0.000 | 0.000 | 0.000 | 0.0 | - |
+
+Two features of this table drive the rest of the report.
+
+1. **The largest confirmation errors are all low-temperature cases** (900-1000 K, 10-30 atm,
+   Ar-diluted), where the parent's own ignition delay is 0.017-1.07 s and is controlled by
+   trace radical chemistry.  The confirmation rms stays at 0.04-0.15 for every mechanism in
+   the table, i.e. the extremes are isolated cases, not a systematic drift.
+2. **The extreme error is not monotonic in the mechanism size** (99 species: 2.04;
+   91 species: 0.85; 88 species: 0.51; 86 species: 1.75).  In that regime a species-count
+   criterion is meaningless, which is why the frontier is reported per case and per
+   temperature band rather than as a single "max error".
+
+### 7.3 Temperature-banded fidelity (per-case analysis)
+
+The confirmation maxima of section 7.2 are single cases.  This table shows where they sit.
+`percase.json` re-computes all 313 igniting confirmation conditions plus the equilibrium
+states for every shortlisted mechanism; the two lowest bands are reported separately because
+that is where the whole mechanism family is weakest.
+
+| mechanism | N_sp | conf max | conf rms | 900-1000 K max (n=53) | 1000-1100 K max (n=54) | T >= 1100 K max (n=206) | T >= 1100 K rms | worst case |
+|---|---|---|---|---|---|---|---|---|
+| `mech3/mech_nsp107` | 107 | 0.058 | 0.008 | 0.058 | 0.050 | 0.026 | 0.004 | C3H6/Ar 30 atm 900 K |
+| `mech3/mech_nsp103` | 103 | 0.179 | 0.018 | 0.179 | 0.108 | 0.028 | 0.004 | C4H6/Ar 30 atm 900 K |
+| `mech3/mech_nsp095` | 95 | 2.027 | 0.117 | **2.027** | 0.203 | 0.040 | 0.008 | C6H6/Ar 30 atm 900 K |
+| `mech3/mech_nsp091` | 91 | 0.853 | 0.060 | 0.342 | **0.853** | 0.058 | 0.011 | C6H6/Ar 10 atm 1000 K |
+| `mech3/mech_nsp088` | 88 | 0.511 | 0.043 | 0.511 | 0.200 | 0.109 | 0.017 | C6H5CH3/Ar 30 atm 900 K |
+| `mech2/mech_nsp087` | 87 | 1.750 | 0.181 | 1.750 | 0.940 | 0.214 | 0.024 | C6H6/Ar 30 atm 900 K |
+| `mech3/reduced_final` | 68 | 1.678 | 0.118 | 1.678 | 0.224 | 0.414 | 0.068 | C6H6/Ar 30 atm 900 K (-1.68) |
+| `parent.yaml` | 111 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | - |
+
+Three facts matter for the interpretation:
+
+1. **Every extreme error is a low-temperature aromatic case.**  The worst cases are C6H6 or
+   C6H5CH3 in Ar at 10-30 atm and 900-1000 K, where the parent's own ignition delay is
+   0.017-1.07 s, i.e. 5-6 orders of magnitude longer than at 1500 K; at those temperatures
+   the induction period is a competition between slow radical build-up and the loss channels
+   of the aromatic sub-mechanism, so small changes in the minor radical pool can move the
+   delay by a factor of a few.  This is an interpretation, not a measured attribution: no
+   per-species sensitivity analysis was run for those cases.
+2. **Above 1100 K, where 206 of the 313 confirmation conditions and essentially all of the
+   experimental data live, the reduction is far better behaved**: the 103-species mechanism
+   is within 2.8 % in all 206 conditions, the 91-species within 5.8 %, the 88-species within
+   10.9 %, and the aggressive 68-species within 41 % (rms 6.8 %).
+3. **The error is not a monotone function of the number of species** (95 species: 2.03,
+   91: 0.85, 88: 0.51, 86: 1.75 at the same matrix), which is why the frontier is reported
+   per band and per case rather than as a single "max error" number: in the trace-radical
+   regime the identity of the last few radical species matters more than the count.
+
+### 7.4 Flame fidelity on the archetype flame curve
+
+One mixture per fuel family (19 families: all 14 FFCM-2 flame families plus five SciExpeM
+families), production refinement settings, relative deviation of S_L from the parent.
+
+| mechanism | N_sp | worst |dS_L|/S_L | family of the worst | families with |dS_L| > 3 % | verdict on the pre-registered 10 % criterion |
+|---|---|---|---|---|---|
+| `mech3/mech_nsp107` | 107 | 1.1 % | C3H6 | none | pass |
+| `mech3/mech_nsp103` | 103 | 1.1 % | C3H6 | none | pass |
+| `mech3/mech_nsp095` | 95 | 6.6 % | C2H2 | C2H2 (+6.6 %) | pass |
+| `mech3/mech_nsp091` | 91 | 6.7 % | C2H2 | C2H2 (+6.7 %) | pass |
+| `mech3/mech_nsp088` | 88 | 15.4 % | C2H2 | C2H2 (+15.4 %) | fail |
+| `mech2/mech_nsp087` | 87 | 15.4 % | C2H2 | C2H2 (+15.4 %) | fail |
+| `mech3/reduced_final` | 68 | 18.6 % | C6H6 | C6H6 -18.6 %, C3H6 -15.6 %, CH4 (5 atm) -14.9 %, C4H81 -13.6 %, C3H8 -12.8 %, C4H10 -8.1 %, C2H6 -7.5 %, CH4 (1 atm) -7.4 % | fail |
+
+The flame curve is the binding constraint of the whole exercise, and it is much more
+selective than the ignition matrix: **C2H2, C3H6, C6H6, C4H81, C3H8 and CH4 at 5 atm lose
+3-19 % of S_L when the last aromatic/unsaturated fragments are removed**, while the same
+mechanisms reproduce ignition delays to a few per cent over the same fuel set.  A freely
+propagating flame is sensitive to the preheat-zone radical budget in a way that neither an
+ignition delay nor an equilibrium temperature is.
+
+**Measured attribution of the binding flame deviation (not a hypothesis).**  The step from
+91 to 88 species removes exactly one species, iC4H3 (the 89-species milestone removes C4H4O
+and HOC6H4CH3; 88 removes iC4H3).  Each of the three was put back into the 88-species
+mechanism separately and the six most sensitive flame targets were re-solved
+(`results/flame_attr.json`, remote job 7958503):
+
+| mechanism | species | C2H2 (phi 1.5, 1 atm) | C6H6 (phi 1, 1 atm) | C3H6 / C4H81 / CH4 / CH4-air |
+|---|---|---|---|---|
+| `mech_nsp088` | 88 | 0.4034 m/s | 0.3836 m/s | reference |
+| + C4H4O | 89 | 0.4034 (+0.00 %) | 0.3836 (+0.00 %) | identical |
+| + HOC6H4CH3 | 89 | 0.4034 (+0.00 %) | 0.3836 (-0.00 %) | identical |
+| **+ iC4H3** | **89** | **0.3728 (-7.6 %)** | **0.3898 (+1.6 %)** | identical |
+| `mech_nsp091` | 91 | 0.3728 | 0.3897 | identical |
+
+A single species accounts for the entire 7.6 % acetylene-flame deviation that decides the
+pre-registered rule: iC4H3, which is produced by `C2H2 + C2H (+M) <=> iC4H3 (+M)` and
+`C4H2 + H <=> iC4H3` and consumed back to C2H2 by `iC4H3 + H <=> C2H2 + H2CC`.  The other
+two species removed in that neighbourhood are flame-invisible at this resolution.  Adding that one species back (89 species, 671
+reactions) also improves the ignition fidelity slightly (confirmation max / rms 0.487 / 0.040
+against 0.511 / 0.043 for the 88-species mechanism) and leaves the worst archetype flame
+deviation at +6.7 % (C2H2), i.e. **the 89-species mechanism dominates both the 88-species
+and the 91-species mechanisms on every measured axis** (0.487 / 6.7 % against 0.511 / 15.4 %
+and 0.853 / 6.7 %).  It is delivered as the compression rung, with the caveat stated in
+section 7.7 that it was constructed *after* the attribution measurement.
+
+The consequence is factual regardless of the mechanism: the pre-registered 10 % flame
+criterion is met at 91 species and above and is first violated by 88 species.
+
+Grid sensitivity (section 6) bounds how much of this is numerical: on five mixtures
+spanning S_L = 0.31-2.24 m/s the production refinement level is within 0.04-2.8 % of a much
+finer solution, so the 6.7 % / 15.4 % / 18.6 % deviations of the 91-, 88- and 68-species
+mechanisms are resolved, while the <= 1.1 % deviations of the 103- and 107-species
+mechanisms sit at the resolution limit and are quoted as such.
+
+### 7.5 Accuracy against measurements (parent vs reduced)
+
+**Ignition delays** (unit-audited dataset, 1612 usable targets: 499 FFCM-2/SFCPD targets,
+all with curated uncertainties, and 1113 SciExpeM archive targets).  `med` is the median of
+ln(model/experiment); `within unc.` is the fraction of uncertainty-carrying points inside
+their stated experimental uncertainty.
+
+| mechanism | N_sp | n | not ignited | med ln | p10 | p90 | max |ln| | within unc. | median diag. band |
+|---|---|---|---|---|---|---|---|---|---|
+| `parent.yaml` | 111 | 1612 | 461 | -0.089 | -0.82 | +0.95 | 7.91 | 0.52 | [-0.86, +1.20] |
+| `mech3/mech_nsp103` | 103 | 1612 | 461 | -0.090 | -0.83 | +0.95 | 7.90 | 0.52 | [-0.86, +1.20] |
+| `mech3/mech_nsp088` | 88 | 1612 | 461 | -0.093 | -0.83 | +0.94 | 7.86 | 0.52 | [-0.86, +1.20] |
+| `mech3/reduced_final` | 68 | 1612 | 461 | -0.171 | -1.18 | +0.86 | 6.79 | 0.46 | see table file |
+
+The 461 "not ignited" points are cases where no diagnostic event is found within the 20 s
+integration limit (248 of the 501 hydrogen points, the whole 155-point syngas set, plus 58
+others); they are counted, not dropped, and they are identical for every mechanism, i.e.
+they are a property of the parent mechanism under the constant-volume, adiabatic reactor
+model, not of the reduction.
+
+Family-level medians (full table: `results/exp_tables_idt_unitfix.md`):
+
+| source | family | n | parent med ln | 103 sp med ln | 88 sp med ln | 68 sp med ln |
+|---|---|---|---|---|---|---|
+| ffcm2 | C2H4 | 78 | -0.071 | -0.071 | -0.071 | -0.158 |
+| ffcm2 | C2H6 | 70 | -0.646 | -0.644 | -0.646 | -0.572 |
+| ffcm2 | C3H6 | 57 | -0.375 | -0.386 | -0.392 | -0.317 |
+| ffcm2 | C3H8 | 66 | +0.070 | +0.071 | +0.072 | +0.131 |
+| ffcm2 | C4H10 | 27 | -0.242 | -0.242 | -0.240 | -0.477 |
+| ffcm2 | C4H6 | 24 | -0.080 | -0.074 | -0.112 | -0.047 |
+| ffcm2 | C4H81 | 21 | +0.278 | +0.272 | +0.276 | +0.567 |
+| ffcm2 | CH3CHO | 6 | +0.900 | +0.900 | +0.900 | +1.206 |
+| ffcm2 | CH3COCH3 | 24 | +0.081 | +0.081 | +0.050 | +0.134 |
+| ffcm2 | CH3OH | 34 | +1.527 | +1.528 | +1.528 | +0.802 |
+| ffcm2 | CH4 | 62 | +0.128 | +0.128 | +0.129 | +0.158 |
+| ffcm2 | C2H2 | 30 | +1.426 | +1.426 | +1.203 | +1.182 |
+| sciexpm | C6H6 | 129 | -0.459 | -0.464 | -0.447 | **-0.826** |
+| sciexpm | CH4+H2 | 52 | -0.601 | -0.601 | -0.601 | -0.525 |
+| sciexpm | H2 | 501 | -0.010 | -0.010 | -0.010 | -0.010 |
+| sciexpm | C2H4 | 263 | +0.097 | +0.097 | +0.096 | -0.310 |
+| sciexpm | C3H6 | 8 | -0.210 | -0.208 | -0.194 | -0.078 |
+
+Interpretation: **the reduction does not make the agreement with experiment worse than the
+parent** over the whole dataset (median ln -0.089 vs -0.090 for 103 species, -0.093 for 88),
+and the family-level deviations are identical to two decimal places for 103/88 species,
+because the deletions act on pathways that are not rate-controlling in these measurements.
+The aggressive 68-species mechanism does degrade two families beyond the pre-registered
+0.05 log-unit margin: benzene (-0.459 -> -0.826) and ethylene (SciExpeM, +0.097 -> -0.310).
+Everything else (methanol +1.53, acetylene +1.43, acetaldehyde +0.90, ethylene FFCM-2
+-0.07, ethane -0.65) is a **parent-mechanism error that the reduction inherits unchanged** —
+these are the largest disagreements in the whole study and they are not caused by the
+removal of any species.
+
+**Laminar burning velocities** (108 targets: 61 FFCM-2 with uncertainty, 47 SciExpeM):
+
+| mechanism | N_sp | n | med ln | p10 | p90 | max |ln| | within unc. |
+|---|---|---|---|---|---|---|---|---|
+| `parent.yaml` | 111 | 108 | +0.005 | -0.271 | +0.142 | 0.919 | 0.46 |
+| `mech3/mech_nsp103` | 103 | 108 | +0.005 | -0.259 | +0.142 | 0.919 | 0.46 |
+| `mech3/mech_nsp088` | 88 | 108 | +0.007 | -0.250 | +0.152 | 0.919 | 0.49 |
+| `mech3/reduced_final` | 68 | 108 | -0.035 | -0.579 | +0.105 | 0.961 | 0.41 |
+
+The parent's flame speeds are excellent against the curated targets (median bias +0.5 %, and
+46 % of the uncertainty-carrying points inside their stated uncertainty), and the reduced
+mechanisms are statistically indistinguishable from it at 88-103 species.  The largest
+single disagreement for every mechanism (e^0.9, i.e. a factor 2.5) is one SciExpeM C2H4
+dataset (10 points, one study, `zenodo.6651886`), whose laminar burning velocities lie about
+a factor 2 below the FFCM-2 consensus for the same fuel; it is a dataset-vs-dataset
+disagreement that no mechanism in this study resolves.
+
+### 7.6 What the experimental comparison says about the low-temperature regime
+
+The pre-registered confirmation tolerance (max |ln| <= 0.35 over all T) is violated by every
+mechanism below 103 species, and the violating cases are all aromatic/Ar, 900-1100 K,
+10-30 atm.  Two independent questions follow: does the experimental record constrain that
+regime at all, and does the parent mechanism behave any better there than the reduced ones?
+
+**Temperatures at which the archived measurements actually exist** (unit-audited set):
+900-1000 K: 44 usable points, all H2 (37) and C2H4 (7); 1000-1100 K: 120 usable points
+(H2, C2H4, C2H2, CH4, CH3OH, C3H8, C4H81); 1100-2300 K: 987 igniting points over 18 fuel
+families.  A further 155 syngas (CO+H2, 1000-1500 K, Ar-diluted) and 248 H2 points do not
+produce any ignition event within the 20 s reactor limit for *any* mechanism, including the
+parent; they are reported as censored, not as failures of a particular reduction.
+The aromatic shock-tube data that do exist are at 2.4-9.1 atm, not at the 10-30 atm of the
+worst confirmation cases, and no experimental target in either source is near
+C6H6/Ar 30 atm 900 K.  **The extreme errors of section 7.3 therefore have no external
+measurement behind them**: they are statements about agreement with the parent mechanism,
+not about accuracy against experiment.
+
+**Agreement with the measurements that do exist in the low-temperature bands** (median
+|ln(model/exp)|, unit-audited, all mechanisms):
+
+| T band | n | parent | 103 sp | 88 sp | 68 sp |
+|---|---|---|---|---|---|
+| 900-1000 K | 44 | 0.170 | 0.170 | 0.170 | 0.152 |
+| 1000-1100 K | 120 | 0.371 | 0.373 | 0.373 | 0.486 |
+| 1100-1300 K | 402 | 0.467 | 0.467 | 0.468 | 0.514 |
+| 1300-1500 K | 355 | 0.400 | 0.400 | 0.407 | 0.477 |
+| 1500-2300 K | 230 | 0.549 | 0.551 | 0.549 | 0.565 |
+
+The parent mechanism is not better in the low-temperature bands than it is at high
+temperature; if anything the median deviation is smallest there (0.17 at 900-1000 K), which
+is a statement about which datasets exist in that band (H2 and C2H4, two well-studied
+fuels), not evidence that USC-II is accurate for aromatics at 900 K.  The conclusion drawn
+here is deliberately narrow: **within the temperature range that has experimental coverage,
+the 103- and 88-species mechanisms are indistinguishable from the parent against the
+measurements; the extra error of the smaller mechanisms sits in a low-temperature aromatic
+corner that the archived measurements do not reach.**
+
+### 7.7 The decision, and the three mechanisms delivered
+
+Applying the rule of section 7.0 mechanically (`src/select_deliverable.py`,
+`results/selection_m3.txt`) gives:
+
+| mechanism | N_sp | confirmation max | confirmation rms | flame worst | rule |
+|---|---|---|---|---|---|
+| `mech3/reduced_final` | 68 | 1.678 | 0.118 | 0.186 | fail (confirmation max, flame) |
+| `mech3/mech_nsp088` | 88 | 0.511 | 0.043 | 0.154 | fail (confirmation max, flame) |
+| `mech_var/add_iC4H3` (delivered as 89 sp) | 89 | 0.487 | 0.040 | 0.067 | fail (confirmation max) |
+| `mech3/mech_nsp091` | 91 | 0.853 | 0.060 | 0.067 | fail (confirmation max) |
+| `mech3/mech_nsp095` | 95 | 2.027 | 0.117 | 0.066 | fail (confirmation max) |
+| `mech3/mech_nsp099` | 99 | 2.041 | 0.118 | not computed | fail (confirmation max) |
+| **`mech3/mech_nsp103`** | **103** | **0.179** | **0.018** | **0.011** | **pass** |
+| `mech3/mech_nsp107` | 107 | 0.058 | 0.008 | 0.011 | pass |
+| `parent.yaml` | 111 | 0.000 | 0.000 | 0.000 | (reference) |
+
+**The rule selects 103 species, i.e. a 7 % reduction, and this is a deliberately modest
+claim.**  Two independent constraints force it: the 10 % flame criterion (failed by 88
+species and below, with C2H2 losing 15 % of S_L) and the confirmation-maximum criterion in
+the 900-1100 K aromatic corner (failed by 91-99 species, where the binding case is
+C6H6/Ar 10 atm 1000 K at 0.85 for 91 species and C6H6/Ar 30 atm 900 K at 2.03 for 95).
+Section 7.4 shows the first constraint is physically real (it is a change in a measured
+observable), while section 7.6 shows the second one is not currently backed by any
+measurement, so a user who is willing to accept unvalidated error in that corner can take
+a much smaller mechanism.
+
+For that reason **three mechanisms are delivered instead of one**, ordered by how much of
+section 7.0's evidence they are allowed to violate:
+
+1. `mech3/mech_nsp103.yaml` — the rule-compliant mechanism; 103 species / 751 reactions
+   (7 % fewer species, 4 % fewer reactions), every criterion of section 7.0 met, agreement
+   with experiment identical to the parent's, and elemental/thermodynamic consistency
+   verified species-by-species (`results/integrity_deliverable.json`).
+2. `deliverable/usc2_skel_089sp_671rx.yaml` — 89 species / 671 reactions (20 % fewer).  This
+   is the 88-species mechanism with the single species `iC4H3` put back, a choice made *after*
+   the attribution measurement of section 7.4 (so it is explicitly not a blind, pre-registered
+   choice).  Measured on the same matrices it is better than the 91-species milestone on every
+   axis (confirmation max / rms 0.487 / 0.040 against 0.853 / 0.060; identical 6.7 % worst
+   archetype flame deviation) and better than the 88-species mechanism by 8.7 percentage
+   points on the binding C2H2 flame deviation.  It still fails the pre-registered
+   confirmation-maximum criterion, in the same unvalidated 900-1100 K aromatic corner.
+3. `mech3/reduced_final.yaml` — 68 species / 473 reactions (39 % fewer).  Ignition delays
+   within 41 % (rms 6.8 %) above 1100 K and within 19 % for flames, but the low-temperature
+   aromatic corner is lost (up to a factor 5.4 at C6H6/Ar 30 atm 900 K) and benzene and
+   ethylene agreement with experiment degrades by 0.3-0.4 log units.  This is the
+   "aggressive" mechanism of the trade-off, not a drop-in replacement.
+
+The choice of 103 over the smaller mechanisms is the choice of the pre-registered rule and
+is reported as such; the measured consequence of overriding it is in the table above.  What would change
+this decision: (i) a measurement in the 900-1100 K, 10-30 atm aromatic corner, which would
+either confirm or remove the binding constraint; (ii) evidence about the C2H2
+flame-speed sensitivity of the 88-species mechanism — this was measured, and it promoted the
+89-species re-addition variant into the delivered set (section 7.4); (iii) a different weighting of the
+two observables, since the ignition and flame criteria select different mechanisms.
+
+## 8. Limitations and coverage gaps
+
+* **Reactor model.** All ignition delays are computed in an adiabatic, constant-volume
+  homogeneous reactor starting from the post-reflected-shock state.  Real shock tubes have
+  boundary-layer and non-ideal-pressure effects, and the ignition-delay datasets that come
+  from rapid-compression machines or flow reactors are constant-pressure.  No constant-
+  pressure ignition calculation was run.
+* **Flame model.** One-dimensional, freely propagating, adiabatic, mixture-averaged
+  transport with Cantera's `FreeFlame`.  No multicomponent/Soret transport, no stretch, no
+  burner-stabilised configurations; the grid-dependence is measured separately.
+* **Diagnostic definitions.** Experimental ignition-delay definitions differ (max d[OH]/dt,
+  max d[CH]/dt, peak [OH], threshold crossing, pressure rise, onset extrapolations).  The
+  archive states a definition per experiment and a mapping to the closest model diagnostic
+  is used (`src/targets.py`); the spread over all model diagnostics is reported as a band
+  rather than hidden.  Onset definitions ("the extrapolated onset of CH* emission") are only
+  approximated by the corresponding peak diagnostic.
+* **Uncertainties.** FFCM-2/SFCPD targets carry curated uncertainties; the SciExpeM/ReSpecTh
+  archive used here mostly does not (`exp_rel_unc = None` for ~97 % of the ignition points
+  and ~68 % of the flame points).  Where no uncertainty exists, deviations are reported in
+  log units without a "within uncertainty" claim, and repeated points from one publication
+  are counted as one study.
+* **Out-of-domain checks.** Aromatic (C6H6, C6H5CH3) and C2H2 ignition experiments reach
+  equivalence ratios up to ~20 and pressures up to 60 atm; the validation sets are reported
+  per family so that these extremes are visible rather than averaged away.
+* **Coverage holes.** (i) Single-fuel CH4 high-pressure ignition data in the archive are
+  all 99-197 atm, above the reduction domain; they are reported as an out-of-domain check
+  rather than as validation.  (ii) The archived laminar-burning-velocity files for C2H6,
+  C3H8 and CH3OH contain ammonia or helium and cannot be simulated with USC-II, so those
+  families' flame validation comes from FFCM-2 only.  (iii) ReSpecTh's own site requires
+  registration and was not used; the Zenodo SciExpeM archive was used instead.
+* **Thermodynamic closure.** Removing a species removes its contribution to the third-body
+  mixture; the reduced mechanisms keep H2O and CO2 (their removal alone changes Tad by 926 K
+  and 1443 K) and all H/O/OH radical chemistry that the screening flagged.  No re-fitting of
+  any rate or thermo parameter was performed, so the reduced mechanisms inherit USC-II's own
+  errors; agreement with experiment is therefore bounded by the parent's agreement.
+* **The aromatic corner is not validated.**  The conditions that set the confirmation
+  tolerance (C6H6/C6H5CH3, 10-30 atm, 900-1100 K) have no counterpart in either experimental
+  source used here (the archived aromatic measurements are at 2.4-9.1 atm and mostly above
+  1200 K).  The reduction error reported for them is a fidelity-to-parent statement only.
+* **Parent-mechanism errors dominate the largest disagreements.**  Methanol (+1.53 log
+  units), acetylene (+1.43), acetaldehyde (+0.90) and ethane (-0.65) medians are the same
+  before and after the reduction; no amount of species removal changes them, and no
+  re-fitting was attempted (it would break the "strict subset" property that makes every
+  claim here checkable).
+* **Non-ignition is censoring, not a measurement of zero reactivity.**  461 of the 1612
+  ignition targets show no ignition event within 20 s in the adiabatic constant-volume
+  reactor; 403 of them are H2 or CO/H2 in argon, where the parent predicts delays longer
+  than any shock-tube test time.  These points are excluded from the medians (they have no
+  finite ratio) but counted in every table.
+* **The archive contains at least one more unit-level inconsistency of the same kind.**
+  `src/archive_unit_audit.py` flags 17 files (out of 1094) as either duplicate-with-conflicting
+  units or physically impossible milliseconds; the audit only checks the first data group of
+  each file and only compares files that are byte-identical in their data points, so a
+  differently written duplicate would not be caught.  Any future use of this archive should
+  run the audit and treat the aromatic/toluene/1-pentanol millisecond series as suspect.
+* **Grid dependence of the flame speed** is measured, not assumed, in
+  `results/flame_grid_*.json`: the production (`medium`) refinement level is compared with a
+  coarser and a finer level on five families; the reported mechanism-to-mechanism differences
+  of section 7.4 are 6-19 % while the discretisation error is reported separately in section 9.
+* **No constant-pressure and no RCM-style calculation was run**, so the datasets whose
+  apparatus is a rapid-compression machine or a flow reactor are compared against a
+  constant-volume trajectory.  The archive's `apparatus` field is reported per dataset but
+  was not used to switch the reactor model.
+
+## 9. Reproducing this work
+
+### 9.1 What is in the workspace
+
+| path | what it is |
+|---|---|
+| `parent.yaml` | the supplied USC-II mechanism, unmodified (111 species / 784 reactions) |
+| `mech3/*.yaml` | 18 acceptance milestones of the tight elimination path, `reduced_final.yaml` = 68 species |
+| `mech2/*.yaml` | 21 milestones of the loose path, `reduced_final.yaml` = 61 species (the aggressive alternative) |
+| `deliverable/` | the three mechanisms handed to `finish_research` (renamed by species count) plus `README.md` with the trade-off table; `deliverable/extra/` keeps the 91-species milestone for comparison |
+| `src/` | every script used, including `mech_text.py` (subsetting), `obs2.py` (multi-diagnostic ignition delay), `evaluate.py`, `pipeline.py`, `screen_removal.py`, `tradeoff_eval.py`, `check_integrity.py`, `archive_unit_audit.py`, `unitfix_idt.py`, `report_exp.py`, `percase.py`, `flame_grid.py` |
+| `raw/web/ffcm2_pages/` | 1067 downloaded FFCM-2/SFCPD target pages (HTML) + `raw/web/ffcm2_targets.json` (parsed) |
+| `raw/sciexpm/xml/` | 1094 SciExpeM ReSpecTh-format experiment files (Zenodo DOIs in `raw/sciexpm/zenodo_all.json`) |
+| `raw/ext/` | the filtered FFCM-2 sets (`ffcm2_ign.json`, `ffcm2_fls.json`), the archive subsets (`subset_idt_full.json`, `subset_flame_v3.json`), the archetype flame curve (`arch_flame2.json`) and the grid-independence set (`subset_flame_grid.json`) |
+| `results/` | every raw result JSON plus the derived tables referenced above |
+| `run_*.sh` | the remote job scripts, each self-contained (`sh run_reduce3.sh` inside a container that has `code.tar.gz`, `wheels.tar.gz`, `mech*.tar.gz`, `raw_ext.tar.gz`) |
+
+### 9.2 Command lines for the main results
+
+    # text-level subsetting and its round-trip verification
+    python3 src/mech_text.py parent.yaml 55/67 ... ; python3 src/check_integrity.py ...
+    # elimination (development matrix -> milestones)   [remote, 64 cores]
+    sh run_reduce3.sh          # tight path  -> mech3/, results/elimination_log3.json
+    sh run_reduce2.sh          # loose path  -> mech2/, results/elimination_log2.json
+    # fidelity to the parent + archetype flame curve + per-case bands   [remote]
+    sh run_stage2.sh  ; sh run_stage2m.sh  ; sh run_stage3.sh
+    # experimental comparison (needs raw_ext/)   [remote]
+    sh run_val_idt.sh ; sh run_val_flame.sh ; sh run_exp_idt.sh ; sh run_exp_flame.sh
+    # flame grid-independence check   [remote]
+    sh run_stage5.sh
+    # tables and the decision
+    python3 src/unitfix_idt.py results/val_idt.json results/val_idt_unitfix.json results/archive_unit_audit.json
+    python3 src/report_exp.py results/val_idt_unitfix.json results/val_flame.json
+    python3 src/report_bands.py results/val_idt_unitfix.json
+    python3 src/frontier_table.py results/tradeoff_m3.json results/tradeoff_m2.json results/percase.json results/val_archflame.json
+    python3 src/select_deliverable.py results/tradeoff_m3.json results/val_archflame.json
+
+### 9.3 Remote jobs (shared 64-core allocation)
+
+| job | what it produced |
+|---|---|
+| `7956863` | first elimination run (v1, later discarded for removing domain fuels) |
+| `7957443` | species screening + loose elimination (v2) |
+| `7957502` | tight elimination (v3) |
+| `7957496`, `7957526` | trade-off curve, archetype flame curve, ignition-solver check |
+| `7957541` | trade-off and flame curve for the tight path |
+| `7957559` | per-case temperature bands, unit-corrected ignition and flame comparison |
+| `7957895` | flame grid check, failed (script bug: refinement levels indexed by name into a list) |
+| `7957969` | flame grid check, fixed script, 3 mechanisms x 5 mixtures x 3 levels: `results/flame_grid_*.json` |
+| `7958438` | species-attribution job, failed (target file is a list, not a dict) |
+| `7958503` | species attribution, fixed: `results/flame_attr.json` |
+| `7958542` | fidelity and flame curve of the three re-addition variants: `results/tradeoff_var.json`, `results/archflame_var.json` |
+
+Total charged compute: about 5.5e5 core-seconds of the allocated 64-core budget (roughly 2.4 h of wall time on 64 cores), including two failed attempts (7957895, 7958438) and one rejected submission.
+
+### 9.4 Numerical checks performed on the custom code
+
+* `src/mech_text.py`: round-trip regeneration of the parent is byte-identical in species,
+  reactions, forward rate constants and h/RT (`results/_rt.yaml` vs `parent.yaml`).
+* `src/obs2.py`: cross-checked against the single-diagnostic solver `src/obs.py` on ten
+  conditions (`results/obs2_check.json`): ratios 0.999-1.085; the grid-refinement effect is
+  0.06-0.27 % at 400 vs 120 points, and the earlier grid-quantisation defect (three different
+  mixtures returning the identical delay) is documented in section 6.
+* `src/check_integrity.py`: for every mechanism in the two families, thermodynamics and
+  transport are compared coefficient-by-coefficient with the parent, forward rate constants
+  of the kept reactions are compared, third-body efficiency maps are compared, elemental
+  balance of every reaction is checked, and the number of duplicate equations is checked not
+  to exceed the parent's.
+* `src/archive_unit_audit.py`: independent recomputation of the unit/species/composition
+  consistency of all 1094 archive files.

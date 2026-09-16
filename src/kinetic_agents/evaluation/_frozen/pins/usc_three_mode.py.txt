@@ -1,0 +1,863 @@
+"""Three controllers over ONE USC tool workspace and scientific-agent loop.
+
+Workspace transitions are informational, not chemical acceptance. Only complete
+macro panels can enter the verified Pareto front. Raw evidence, numerical belief,
+temporary stage state, and executable memory have separate lifetimes.
+"""
+from __future__ import annotations
+
+from collections import defaultdict
+from copy import deepcopy
+from dataclasses import asdict, replace
+import json
+import math
+from pathlib import Path
+import time
+
+import numpy as np
+
+from .agentic_loop import ValidationReport
+from .scientific_agent import ScientificAction, ScientificMechanismAgent, ToolOutcome, ToolRegistry
+from .usc_protocol import atomic_json, digest, stratum
+from .physical_tools import ranking_diagnostics
+
+
+MODES = ('workflow', 'static', 'evolved')
+EDIT_OPERATIONS = ('reduce', 'restore', 'rate_edit', 'rate_optimize')
+OPERATIONS = ('query', 'rank', *EDIT_OPERATIONS, 'inspect_history', 'memory_propose', 'memory_revoke', 'stop')
+
+
+def rate_jacobian(objective, x, low, high, step=.03):
+    """Finite differences in log-rate space, above typical IDT grid quantization.
+
+    Every evaluation goes through the same charged objective. Machine-epsilon
+    perturbations at log multiplier zero can otherwise yield a false zero
+    derivative for a fixed-grid ignition observable. Not a sensitivity oracle.
+    """
+    x = np.asarray(x, dtype=float)
+    base = objective(x)
+    columns = []
+    for i in range(len(x)):
+        h = min(step, high[i]-x[i])
+        if h < step/2:
+            h = -min(step, x[i]-low[i])
+        if not h:
+            raise ValueError('empty finite-difference interval')
+        shifted = x.copy()
+        shifted[i] += h
+        columns.append((objective(shifted)-base)/h)
+    return np.column_stack(columns)
+
+
+class MemoryLedger:
+    def __init__(self, mode, initial):
+        if mode not in MODES:
+            raise ValueError('unknown mode')
+        self.mode, self.initial = mode, deepcopy(initial)
+        self.entries, self.events = {}, []
+
+    def propose(self, proposal, stage, evidence, cases):
+        if self.mode != 'evolved':
+            raise PermissionError('long-term memory is read-only in this mode')
+        required = {'condition', 'strategy', 'operations', 'evidence_ids', 'counterexample_ids', 'scope_strata'}
+        if set(proposal) != required:
+            raise ValueError('memory proposal fields mismatch')
+        if not proposal['condition'] or not proposal['strategy'] or len(proposal['strategy']) > 1600:
+            raise ValueError('memory requires bounded condition and strategy')
+        if not proposal['operations'] or not set(proposal['operations']) <= set(EDIT_OPERATIONS + ('query', 'rank')):
+            raise ValueError('memory operations outside common tool vocabulary')
+        own = {row['evidence_id']: row for row in evidence}
+        cited = set(proposal['evidence_ids']) | set(proposal['counterexample_ids'])
+        if not set(proposal['evidence_ids']) or not cited <= own.keys():
+            raise ValueError('memory cites unavailable or foreign evidence')
+        rows = [own[i] for i in proposal['evidence_ids']]
+        if any(r['stage'] > stage or r['status'] != 'success' or 'signed_sigma' not in r for r in rows):
+            raise ValueError('memory support must be own completed macro queries')
+        covered = {stratum(cases[r['case_id']]) for r in rows}
+        if len({r['case_id'] for r in rows}) < 2 or len(covered) < 2:
+            raise ValueError('single-case feedback cannot seed a cross-case program')
+        if not proposal['scope_strata'] or not set(proposal['scope_strata']) <= covered:
+            raise ValueError('memory scope exceeds cited evidence')
+        entry = {**deepcopy(proposal), 'proposed_stage': stage,
+                 'activate_stage': stage + 1, 'status': 'development_hypothesis',
+                 'known_query_keys': sorted({r.get('candidate_id', '') + ':' + r['case_id'] for r in evidence
+                                            if r.get('operation') == 'query'}),
+                 'future_support': [], 'future_counterexamples': []}
+        mid = digest(entry)
+        self.entries[mid] = entry
+        self.events.append({'event': 'proposed_and_provenance_checked', 'memory_id': mid, 'stage': stage})
+        return mid
+
+    def visible(self, stage):
+        result = deepcopy(self.initial)
+        if self.mode == 'evolved':
+            for mid, entry in sorted(self.entries.items()):
+                if entry['activate_stage'] <= stage and entry['status'] != 'revoked':
+                    result.append({'id': mid, **deepcopy(entry)})
+        return result
+
+    def version(self, stage):
+        return digest(self.visible(stage))
+
+    def revoke(self, mid, stage, reason):
+        if self.mode != 'evolved' or mid not in self.entries:
+            raise PermissionError('memory revision denied')
+        self.entries[mid]['status'] = 'revoked'
+        self.events.append({'event': 'revoked', 'memory_id': mid, 'stage': stage, 'reason': reason})
+
+    def future_outcome(self, mid, stage, case, row, baseline, operation):
+        entry = self.entries.get(mid)
+        if (not entry or entry['status'] == 'revoked' or stage < entry['activate_stage']
+                or stratum(case) not in entry['scope_strata'] or operation not in entry['operations']
+                or row['status'] != 'success' or baseline.get('status') != 'success'):
+            return
+        cited_ids = set(entry['evidence_ids']) | set(entry['counterexample_ids'])
+        if row['evidence_id'] in cited_ids:
+            return
+        if row.get('candidate_id', '') + ':' + case['case_id'] in entry['known_query_keys']:
+            return  # A later-stage reread of an already known response is not future evidence.
+        supported = abs(row['signed_sigma']) <= abs(baseline['signed_sigma'])
+        target = 'future_support' if supported else 'future_counterexamples'
+        entry[target].append({'case_id': case['case_id'], 'stratum': stratum(case),
+                              'evidence_id': row['evidence_id'], 'stage': stage})
+        if not supported:
+            self.revoke(mid, stage, 'prospective scoped macro counterexample vs parent')
+        elif len({r['stratum'] for r in entry['future_support']}) >= 2:
+            entry['status'] = 'development_supported_not_causal_or_cross_task'
+
+
+class BayesianResponse:
+    """Fixed random-feature Bayesian ridge proxy; NOT a calibrated chemistry posterior."""
+    def __init__(self, names, fuels, dimensions=48, reaction_ids=()):
+        self.names, self.fuels = list(names), sorted(fuels)
+        self.reaction_ids = list(reaction_ids)
+        rng = np.random.default_rng(20260906)
+        self.w = rng.normal(0, 1, (len(names)+len(self.fuels)+len(self.reaction_ids)+3, dimensions))
+        self.phase = rng.uniform(0, 2*np.pi, dimensions)
+        self.beliefs = {}
+
+    @property
+    def signature(self):
+        return digest({'version': 'signed-parent-rate-features-v2', 'names': self.names,
+                       'fuels': self.fuels, 'reaction_ids': self.reaction_ids,
+                       'dimensions': len(self.phase), 'seed': 20260906})
+
+    def features(self, candidate, case):
+        state = case['initial_state']
+        deleted = [float(n not in candidate['keep']) for n in self.names]
+        fuel = [float(f == case['fuel_label']) for f in self.fuels]
+        rates = [math.log(candidate['multipliers'].get(rid, 1.)) for rid in self.reaction_ids]
+        if set(candidate['multipliers']) - set(self.reaction_ids):
+            raise ValueError('proxy lacks stable parent reaction identity for rate edit')
+        mixture = state['mole_fractions']
+        extras = [state['temperature_k']/1500, math.log(state['pressure_pa']/101325)/4,
+                  sum(mixture.get(n, 0) for n in ('O2', 'N2')) / sum(mixture.values())]
+        raw = np.array(deleted + fuel + rates + extras)
+        phi = np.cos(raw @ self.w + self.phase) * math.sqrt(2/len(self.phase))
+        return phi
+
+    def predict(self, candidate, case):
+        phi = self.features(candidate, case)
+        key = case['operator']['family']
+        mean, cov = self.beliefs.get(key, (np.zeros(len(phi)), np.eye(len(phi))*100))
+        return float(phi @ mean), float(max(0, phi @ cov @ phi))
+
+    def update(self, candidate, case, response):
+        phi = self.features(candidate, case)
+        key = case['operator']['family']
+        mean, cov = self.beliefs.get(key, (np.zeros(len(phi)), np.eye(len(phi))*100))
+        v = cov @ phi
+        denominator = 1 + phi @ v
+        mean = mean + v * (response - phi @ mean) / denominator
+        cov = cov - np.outer(v, v) / denominator
+        self.beliefs[key] = (mean, (cov + cov.T)/2)
+
+
+def panel_summary(candidate, cases, records):
+    groups = defaultdict(list)
+    failed, missing = [], []
+    for cid, case in cases.items():
+        row = records.get((candidate['id'], cid))
+        if row is None:
+            missing.append(cid)
+        elif row['status'] != 'success':
+            failed.append(cid)
+        else:
+            groups[stratum(case)].append(abs(row['signed_sigma']))
+    q90 = {k: float(np.quantile(v, .9)) for k, v in sorted(groups.items())}
+    complete = not missing and not failed
+    return {'candidate_id': candidate['id'], 'species_count': candidate['species_count'],
+            'reaction_count': candidate['reaction_count'], 'group_q90_sigma': q90,
+            'observed_worst_q90_sigma': max(q90.values(), default=None),
+            'verified_worst_q90_sigma': max(q90.values()) if complete else None,
+            'complete': complete, 'missing_count': len(missing), 'failure_count': len(failed),
+            'failures': failed, 'claim': 'complete_development_panel' if complete else 'partial_evidence_only'}
+
+
+def pareto_front(summaries):
+    complete = [s for s in summaries if s['complete']]
+    def point(s):
+        return (s['verified_worst_q90_sigma'], s['species_count'], s['reaction_count'])
+    return [a for a in complete if not any(
+        all(x <= y for x, y in zip(point(b), point(a))) and any(x < y for x, y in zip(point(b), point(a)))
+        for b in complete)]
+
+
+class Workspace:
+    """The shared tool object, observer and workspace-integrity verifier."""
+    name = 'usc_tools'
+
+    def __init__(self, mode, seed, factory, backend, cases, initial_memory, output, stage_cpu_seconds,
+                 initial_evidence=(), search_reserve_fraction=.3):
+        self.mode, self.seed = mode, seed
+        self.factory, self.backend = factory, backend
+        self.cases = {c['case_id']: deepcopy(c) for c in cases}
+        self.memory = MemoryLedger(mode, initial_memory)
+        self.output = Path(output)
+        self.output.mkdir(parents=True, exist_ok=True)
+        self.stage_limit = float(stage_cpu_seconds)
+        if (type(search_reserve_fraction) not in (int,float) or
+            not math.isfinite(search_reserve_fraction) or not 0<=search_reserve_fraction<1):
+            raise ValueError('search reserve fraction must be finite in [0,1)')
+        self.search_reserve_fraction=float(search_reserve_fraction)
+        self.belief = BayesianResponse(factory.gas.species_names, {c['fuel_label'] for c in cases}, reaction_ids=factory.ids)
+        self.candidates = {factory.parent['id']: deepcopy(factory.parent)}
+        self.evidence, self.records, self.rankings, self.actions = [], {}, {}, []
+        self.ranking_contexts = {}
+        self.stage, self.step, self.logical_cpu, self.actual_cpu = 0, 0, 0., 0.
+        self.stage_start_cpu = 0.
+        self.search_phase = True
+        self.active_ids, self.used_memory, self.pending_links = [], [], {}
+        self.history_response = None
+        self.history_response_view = None
+        self.initial_evidence = deepcopy(list(initial_evidence))
+        for row in self.initial_evidence:
+            if row['candidate_id'] != factory.parent['id'] or row['case_id'] not in self.cases:
+                raise ValueError('invalid shared initial evidence')
+            shared = deepcopy(row)
+            shared.update(shared_initialization=True, query_quote_cpu_seconds=row['logical_cpu_seconds'],
+                          logical_cpu_seconds=0., actual_cpu_seconds=0., solver_invocations=0)
+            self._record(shared)  # shared setup cost is reported once by the scheduler
+
+    @property
+    def remaining(self):
+        return max(0., self.stage_limit - (self.logical_cpu - self.stage_start_cpu))
+
+    @property
+    def query_grant(self):
+        return max(0., self.remaining - (self.search_reserve_fraction*self.stage_limit if self.search_phase else 0.))
+
+    def start_stage(self, stage):
+        if stage != self.stage + 1 or stage not in (1, 2, 3):
+            raise ValueError('stages must be sequential')
+        self.stage, self.step, self.stage_start_cpu = stage, 0, self.logical_cpu
+        self.search_phase = True
+        # No previous skeletal candidate can be the new structural starting point.
+        # Historical artifacts remain inspectable as raw evidence only.
+        self.active_ids = [self.factory.parent['id']]
+        self.pending_links, self.history_response = {}, None
+        self.history_response_view = None
+        self.checkpoint()
+
+    def cost_estimate(self, family):
+        costs = [r.get('query_quote_cpu_seconds', r['logical_cpu_seconds']) for r in self.evidence
+                 if self.cases[r['case_id']]['operator']['family'] == family
+                 and r.get('query_quote_cpu_seconds', r['logical_cpu_seconds']) > 0]
+        return max(.05, float(np.median(costs))) if costs else (1. if family == 'ignition_delay' else 180.)
+
+    def recommend_queries(self, candidate_id, count=4):
+        candidate = self.candidates[candidate_id]
+        coverage = defaultdict(int)
+        observed_families = set()
+        for (mid, cid), row in self.records.items():
+            if mid == candidate_id and row['status'] == 'success':
+                coverage[stratum(self.cases[cid])] += 1
+                observed_families.add(self.cases[cid]['operator']['family'])
+        options = []
+        for cid, case in self.cases.items():
+            if (candidate_id, cid) in self.records:
+                continue
+            mean, variance = self.belief.predict(candidate, case)
+            family = case['operator']['family']
+            cost = self.cost_estimate(family)
+            score = variance / (cost * (1 + coverage[stratum(case)]))
+            tie = digest([self.seed, self.stage, candidate_id, cid])
+            options.append({'case_id': cid, 'mean_signed_sigma': mean, 'variance': variance,
+                            'cost_cpu_seconds': cost, 'acquisition': score, 'family': family, 'tie': tie})
+        options.sort(key=lambda x: (-x['acquisition'], x['tie']))
+        chosen = []
+        # Initial batches require both operators. The remaining choices follow
+        # Bayesian variance/cost with stratum coverage, not fixed anchor IDs.
+        for family in ('laminar_flame_speed', 'ignition_delay'):
+            if family not in observed_families:
+                match = next((x for x in options if x['family'] == family), None)
+                if match:
+                    chosen.append(match)
+        for row in options:
+            if row not in chosen:
+                chosen.append(row)
+            if len(chosen) >= count:
+                break
+        return chosen[:count]
+
+    def observe(self, state):
+        summaries = [panel_summary(self.candidates[i], self.cases, self.records) for i in self.active_ids]
+        visible = self.memory.visible(self.stage)
+        strata = sorted({stratum(c) for c in self.cases.values()})
+        mixtures, mixture_ids, catalog = [], {}, []
+        for c in self.cases.values():
+            mixture = c['initial_state']['mole_fractions']
+            key = digest(mixture)
+            if key not in mixture_ids:
+                mixture_ids[key] = len(mixtures)
+                mixtures.append(mixture)
+            catalog.append([c['case_id'], strata.index(stratum(c)), c['initial_state']['temperature_k'],
+                            c['initial_state']['pressure_pa'], mixture_ids[key],
+                            c['observation']['value'], c['observation']['uncertainty']])
+        recent_keys = ('evidence_id', 'candidate_id', 'case_id', 'stage', 'operation', 'status',
+                       'signed_sigma', 'prediction', 'logical_cpu_seconds', 'error',
+                       'failure_kind', 'sample_normalization')
+        return {'stage': self.stage, 'remaining_cpu_seconds': self.remaining,
+                'parent_id': self.factory.parent['id'], 'candidate_summaries': summaries,
+                'verified_front': pareto_front(summaries),
+                'candidate_details': [{k: v for k, v in self.candidates[i].items() if k not in ('path', 'reaction_ids')}
+                                      for i in self.active_ids],
+                'query_recommendations': {i: self.recommend_queries(i) for i in self.active_ids},
+                'case_catalog': {'columns': ['id', 'stratum_index', 'T_K', 'P_Pa', 'mixture_index', 'observed', 'sigma'],
+                                 'strata': strata, 'mixtures': mixtures, 'rows': catalog,
+                                 'uncertainty': 'IDT: log-multiplicative; LFS: absolute m/s'},
+                'recent_evidence': [{k: r[k] for k in recent_keys if k in r} for r in self.evidence[-16:]],
+                'history_response': self.history_response,
+                'history_response_view': self.history_response_view,
+                'raw_history_count': len(self.evidence),
+                'raw_archive_counts': {'evidence':len(self.evidence), 'actions':len(self.actions),
+                                       'candidates':len(self.candidates)},
+                'history_access': 'inspect_history(kind=evidence|actions|candidates,offset,limit<=100,candidate_id optional); all stages, own trajectory only',
+                'memory': visible, 'memory_version': digest(visible),
+                'ranked_candidate_ids': list(self.rankings),
+                'species_rankings': {cid: sorted(importance.items(), key=lambda x: (x[1], x[0]))
+                                     for cid, importance in self.rankings.items() if cid in self.active_ids},
+                'ranking_contexts': deepcopy(self.ranking_contexts),
+                'ranking_diagnostics': {cid: ranking_diagnostics(
+                    values, self.factory.protected) for cid, values in self.rankings.items() if cid in self.active_ids},
+                'editable_rate_ids': sorted(self.factory.rate_bounds),
+                'tool_vocabulary': list(OPERATIONS),
+                'meaning': 'provisional candidates are NOT scientifically accepted mechanisms'}
+
+    def validate(self, state):
+        # This validates the workspace, not accuracy. Tools do not replace state
+        # with a chemically "accepted" candidate; full-panel front does that.
+        return ValidationReport(score=0., constraints_ok=True,
+                                metrics={'workspace_only': 1., 'remaining_cpu_seconds': self.remaining})
+
+    def _record(self, row):
+        from .physical_tools import validate_evidence_numbers
+        validate_evidence_numbers(row)
+        row['stage'] = self.stage
+        row['evidence_id'] = digest({'trajectory': [self.mode, self.seed], 'ordinal': len(self.evidence), 'row': row})
+        self.evidence.append(row)
+        if row['operation'] == 'query':
+            key = (row['candidate_id'], row['case_id'])
+            # Only successful responses fit the numerical proxy. Failures are
+            # explicit observations, not artificial Gaussian pseudo-values.
+            old = self.records.get(key)
+            if old is None or old['status'] != 'success':
+                self.records[key] = row
+                if row['status'] == 'success':
+                    self.belief.update(self.candidates[row['candidate_id']], self.cases[row['case_id']], row['signed_sigma'])
+            for mid, operation in self.pending_links.get(row['candidate_id'], []):
+                base = self.records.get((self.factory.parent['id'], row['case_id']), {})
+                self.memory.future_outcome(mid, self.stage, self.cases[row['case_id']], row, base, operation)
+        elif row['operation'] == 'rank' and row['status'] == 'success':
+            from .physical_tools import RANKING_SCHEMA
+            implementation = row.get('ranking_implementation', {})
+            if implementation.get('schema') != RANKING_SCHEMA or not row.get('ranking_targets'):
+                return  # Legacy rows stay in the archive, not in actionable new rankings.
+            context = {'targets': row['ranking_targets'], 'implementation': implementation}
+            cid = row['candidate_id']
+            if self.ranking_contexts.get(cid) != context:
+                self.rankings[cid] = {}  # Never merge different targets/implementations.
+                self.ranking_contexts[cid] = deepcopy(context)
+            imp = self.rankings.setdefault(row['candidate_id'], {})
+            for name, value in row['importance'].items():
+                imp[name] = max(imp.get(name, 0.), value)
+
+    def query(self, candidate_id, ids, operation='query', target_species=None):
+        if candidate_id not in self.active_ids:
+            raise ValueError('only current-stage candidates may be operated on')
+        if not ids or len(ids) > 100 or len(set(ids)) != len(ids):
+            raise ValueError('require 1..100 unique case IDs')
+        if set(ids) - self.cases.keys():
+            raise PermissionError('query attempted outside optimization pool')
+        targets = []
+        if operation == 'rank':
+            from .physical_tools import validate_targets
+            targets = validate_targets(target_species, self.candidates[candidate_id]['keep'])
+        if operation == 'query':
+            available_families = {c['operator']['family'] for c in self.cases.values()}
+            seen_families = {self.cases[cid]['operator']['family'] for (mid, cid) in self.records
+                             if mid == candidate_id}
+            requested_families = {self.cases[cid]['operator']['family'] for cid in ids}
+            if not seen_families and not available_families <= requested_families:
+                raise ValueError('first candidate query batch must include both available 0D/1D families')
+        rows = []
+        candidate = self.candidates[candidate_id]
+        if getattr(self.backend, 'workers', 1) > 1 and len(ids) > 1:
+            if self.query_grant <= .01:
+                return rows
+            for row in self.backend.execute_batch(candidate, ids, operation, targets, self.query_grant):
+                row['operation'] = operation
+                self.logical_cpu += row['logical_cpu_seconds']
+                self.actual_cpu += row['actual_cpu_seconds']
+                self._record(row)
+                rows.append(row)
+                self.checkpoint()
+            return rows
+        for cid in ids:
+            if self.query_grant <= .01:
+                break
+            row = self.backend.execute(candidate, cid, operation, targets, self.query_grant)
+            row['operation'] = operation
+            self.logical_cpu += row['logical_cpu_seconds']
+            self.actual_cpu += row['actual_cpu_seconds']
+            self._record(row)
+            rows.append(row)
+            self.checkpoint()
+        return rows
+
+    def _new_candidate(self, original, keep, multipliers, operation, memory_ids):
+        dropped_rates = {}
+        if operation == 'reduce' and multipliers:
+            # Structural deletion also deletes its reaction-local parameters.
+            # Record that loss explicitly; do not alter any surviving rate or
+            # weaken materialize's ban on editing absent/unknown reactions.
+            from .mechanism_closure import reaction_participant_names
+            retained = {rid for rid, reaction in zip(self.factory.ids, self.factory.gas.reactions())
+                        if (reaction_participant_names(reaction) | set(reaction.orders)) <= set(keep)}
+            dropped_rates = {rid: factor for rid, factor in multipliers.items() if rid not in retained}
+            if not set(dropped_rates) <= set(original['reaction_ids']):
+                raise ValueError('cannot clean unknown or already absent rate parameters')
+            multipliers = {rid: factor for rid, factor in multipliers.items() if rid in retained}
+        candidate = self.factory.materialize(keep, multipliers)
+        self.candidates[candidate['id']] = candidate
+        if candidate['id'] in self.active_ids:
+            self.active_ids.remove(candidate['id'])
+        self.active_ids.append(candidate['id'])  # explicit current search center
+        self.pending_links[candidate['id']] = [(mid, operation) for mid in memory_ids if mid in self.memory.entries]
+        return {'candidate_id': candidate['id'], 'parent_candidate_id': original['id'],
+                'dropped_rate_parameters_with_deleted_reactions': dropped_rates,
+                'scientifically_accepted': False, 'status': 'materialized_provisional'}
+
+    def execute(self, state, action):
+        from cantera import CanteraError
+        started = time.process_time()
+        before = self.logical_cpu
+        payload = deepcopy(action.payload)
+        operation = action.operation
+        memory_ids = payload.pop('memory_ids', [])
+        event = {'stage': self.stage, 'step': self.step, 'operation': operation, 'payload': payload,
+                 'rationale': action.rationale, 'memory_version': self.memory.version(self.stage),
+                 'memory_ids': memory_ids}
+        self.step += 1
+        try:
+            if not set(memory_ids) <= {r['id'] for r in self.memory.visible(self.stage)}:
+                raise PermissionError('unavailable/future memory referenced')
+            if operation not in OPERATIONS or operation == 'stop':
+                raise ValueError('invalid executable operation')
+            if operation in ('query', 'rank'):
+                result = {'rows': self.query(payload['candidate_id'], payload['case_ids'], operation,
+                                             payload.get('target_species'))}
+            elif operation in EDIT_OPERATIONS:
+                cid = payload['candidate_id']
+                if cid not in self.active_ids:
+                    raise ValueError('cannot warm-start with a prior-stage skeleton')
+                original = self.candidates[cid]
+                keep, rates = set(original['keep']), deepcopy(original['multipliers'])
+                if operation == 'reduce':
+                    from .structural_actions import structural_species
+                    names = structural_species(operation, payload)
+                    if names is not None:
+                        from .physical_tools import check_rank_based_deletion
+                        if not set(names) <= keep:
+                            raise ValueError('deletion names absent from candidate')
+                        check_rank_based_deletion({**payload, 'species': names}, self.rankings.get(cid, {}), self.evidence)
+                        keep -= set(names)
+                    else:
+                        if cid not in self.rankings:
+                            raise ValueError('DRGEP trajectory ranking required first')
+                        from .physical_tools import threshold_deletions
+                        if 'count' in payload:
+                            raise ValueError('ordinal-count deletion is unsupported; provide threshold or explicit evidence-backed species')
+                        removed = threshold_deletions(self.rankings[cid], keep, self.factory.protected,
+                                                      payload.get('threshold'))
+                        if not removed:
+                            raise ValueError('no species below threshold; rank does not justify deletion')
+                        keep -= set(removed)
+                    # _new_candidate explicitly logs reaction-local rate
+                    # parameters removed by this structural deletion.
+                elif operation == 'restore':
+                    from .structural_actions import structural_species
+                    names = structural_species(operation, payload)
+                    if names is None:
+                        raise ValueError('restore requires species_to_restore')
+                    restored = set(names)
+                    if restored & keep or not restored <= set(self.factory.gas.species_names):
+                        raise ValueError('restore expects absent parent species')
+                    keep |= restored
+                elif operation == 'rate_edit':
+                    rates.update(payload['multipliers'])
+                elif operation == 'rate_optimize':
+                    result = self._rate_optimize(original, payload, memory_ids)
+                    keep = None
+                if keep is not None:
+                    result = self._new_candidate(original, keep, rates, operation, memory_ids)
+            elif operation == 'inspect_history':
+                offset, limit = int(payload.get('offset', 0)), int(payload.get('limit', 50))
+                if offset < 0 or not 1 <= limit <= 100:
+                    raise ValueError('invalid history page')
+                kind = payload.get('kind', 'evidence')
+                archives = {'evidence':self.evidence, 'actions':self.actions,
+                            'candidates':list(self.candidates.values())}
+                if kind not in archives:
+                    raise ValueError('unknown archive kind')
+                records = archives[kind]
+                candidate_id = payload.get('candidate_id')
+                if candidate_id is not None:
+                    if candidate_id not in self.candidates:
+                        raise ValueError('candidate outside own archive')
+                    if kind == 'actions':
+                        records = [r for r in records if r.get('payload',{}).get('candidate_id')==candidate_id
+                                   or r.get('result',{}).get('candidate_id')==candidate_id]
+                    else:
+                        key = 'id' if kind == 'candidates' else 'candidate_id'
+                        records = [r for r in records if r.get(key)==candidate_id]
+                self.history_response = deepcopy(records[offset:offset+limit])
+                self.history_response_view = {'kind':kind,'offset':offset,'total':len(records),
+                                              'candidate_id':candidate_id,'read_only':True}
+                result = {'history': self.history_response, 'view':self.history_response_view}
+            elif operation == 'memory_propose':
+                mid = self.memory.propose(payload['proposal'], self.stage, self.evidence, self.cases)
+                result = {'memory_id': mid, 'activation_stage': self.stage+1}
+            elif operation == 'memory_revoke':
+                self.memory.revoke(payload['memory_id'], self.stage, payload['reason'])
+                result = {'revoked': payload['memory_id']}
+            event.update(status='success', result=result)
+            outcome = ToolOutcome(candidate_state=state, informational=True,
+                                  metadata={'workspace_action': True, 'chemical_acceptance': False, **result})
+        except (ValueError, KeyError, PermissionError, CanteraError) as exc:
+            event.update(status='rejected', error=f'{type(exc).__name__}: {exc}')
+            outcome = ToolOutcome(candidate_state=state, failure=event['error'], metadata={'chemical_acceptance': False})
+        # Local preprocessing/edit CPU is not free. Child solver CPU is charged
+        # separately by the backend; process_time excludes child CPU.
+        local = time.process_time() - started
+        self.logical_cpu += local
+        self.actual_cpu += local
+        outcome = replace(outcome, cost=self.logical_cpu - before)
+        event['cost_cpu_seconds'] = outcome.cost
+        if operation == 'inspect_history' and event.get('status') == 'success':
+            # A history view is derived from the underlying raw archives. Do
+            # not embed views of earlier views recursively in the action log.
+            # Preserve the complete request/rationale plus response identity;
+            # the returned ToolOutcome/history_response still contains data.
+            event['result'] = {'view':deepcopy(self.history_response_view),
+                               'returned_record_count':len(self.history_response),
+                               'returned_records_sha256':digest(self.history_response)}
+        self.actions.append(event)
+        self.checkpoint()
+        return outcome
+
+    def _rate_optimize(self, original, payload, memory_ids):
+        from scipy.optimize import least_squares
+        ids = payload['reaction_ids']
+        cases = payload['case_ids']
+        if not 1 <= len(ids) <= 4 or len(set(ids)) != len(ids) or not set(ids) <= self.factory.rate_bounds.keys():
+            raise ValueError('require 1..4 distinct reviewed rate parameters')
+        if not cases or len(cases) > 100 or not set(cases) <= self.cases.keys():
+            raise ValueError('rate optimization cases outside capability')
+        if len(set(cases)) != len(cases) or not set(ids) <= set(original['reaction_ids']):
+            raise ValueError('rate optimization requires distinct cases and retained reactions')
+        bounds = self.factory.rate_bounds
+        x0 = [math.log(original['multipliers'].get(r, 1.)) for r in ids]
+        low, high = [math.log(bounds[r]['lower']) for r in ids], [math.log(bounds[r]['upper']) for r in ids]
+        seen, attempted, tested = {}, set(), []
+        def objective(x):
+            key = tuple(map(float, x))
+            if key in seen:
+                return seen[key]
+            if len(attempted) >= 12 or self.remaining <= .01:
+                raise StopIteration('parameter-vector/CPU budget exhausted')
+            attempted.add(key)
+            rates = {**original['multipliers'], **dict(zip(ids, map(float, np.exp(x))))}
+            meta = self._new_candidate(original, original['keep'], rates, 'rate_optimize', memory_ids)
+            rows = self.query(meta['candidate_id'], cases)
+            tested.append(meta['candidate_id'])
+            if len(rows) != len(cases) or any(r['status'] != 'success' for r in rows):
+                raise StopIteration('unavailable parameter-vector evaluation; no pseudo residual')
+            values = np.array([r['signed_sigma'] for r in rows])
+            seen[key] = values
+            return values
+        try:
+            least_squares(objective, x0, bounds=(low, high), max_nfev=12,
+                          jac=lambda x: rate_jacobian(objective, x, low, high))
+        except StopIteration:
+            pass
+        return {'tested_candidate_ids': tested, 'scope': 'local_tool_panel_not_full_macro_certificate'}
+
+    def checkpoint(self):
+        atomic_json(self.output / 'checkpoint.json', {
+            'schema': 'usc-workspace-v1', 'mode': self.mode, 'seed': self.seed, 'stage': self.stage,
+            'step': self.step, 'stage_limit': self.stage_limit, 'stage_start_cpu': self.stage_start_cpu,
+            'search_reserve_fraction': self.search_reserve_fraction,
+            'ranking_contexts': self.ranking_contexts,
+            'search_phase': self.search_phase,
+            'logical_cpu_seconds': self.logical_cpu, 'actual_cpu_seconds': self.actual_cpu,
+            'parent_id': self.factory.parent['id'], 'active_ids': self.active_ids,
+            'cases_sha256': digest(list(self.cases.values())), 'initial_memory_sha256': digest(self.memory.initial),
+            'candidates': self.candidates, 'evidence': self.evidence, 'rankings': self.rankings,
+            'actions': self.actions, 'pending_links': self.pending_links,
+            'memory_entries': self.memory.entries, 'memory_events': self.memory.events,
+            'memory_version': self.memory.version(self.stage),
+            'belief_feature_sha256': self.belief.signature,
+            'posterior': {k: {'mean': m.tolist(), 'covariance': c.tolist()} for k, (m, c) in self.belief.beliefs.items()},
+            'claim_boundary': 'development only; stage count is not independent task count'})
+
+    def finalize_stage(self, max_candidates=3):
+        """Budgeted full-optimization scoring; no access to recheck capability.
+
+        A proxy nominates a small shortlist; only measured complete panels can
+        become delivered endpoints. Nomination is not a reported Pareto result.
+        """
+        self.search_phase = False
+        self.checkpoint()
+        nominations = []
+        for cid in self.active_ids:
+            candidate = self.candidates[cid]
+            groups = defaultdict(list)
+            for case in self.cases.values():
+                row = self.records.get((cid, case['case_id']))
+                if row and row['status'] == 'success':
+                    value = abs(row['signed_sigma'])
+                elif row:
+                    value = 1e6  # nomination penalty ONLY, never fitted/reported as an observation
+                else:
+                    mean, variance = self.belief.predict(candidate, case)
+                    value = abs(mean) + math.sqrt(variance)
+                groups[stratum(case)].append(value)
+            score = max(float(np.quantile(v, .9)) for v in groups.values())
+            nominations.append((cid, score, candidate['species_count'], candidate['reaction_count']))
+        if not nominations:
+            return []
+        chosen = []
+        for index in (1, 2):
+            pick = min(nominations, key=lambda x: (x[index], x[1], x[3], x[0]))[0]
+            if pick not in chosen:
+                chosen.append(pick)
+        values = np.array([n[1:] for n in nominations])
+        low, span = values.min(axis=0), np.maximum(values.max(axis=0)-values.min(axis=0), 1e-12)
+        # Predeclared normalized distance to the utopia point, no recheck data.
+        compromise = min(nominations, key=lambda x: (float(np.linalg.norm((np.array(x[1:])-low)/span)), x[0]))[0]
+        if compromise not in chosen:
+            chosen.append(compromise)
+        for cid in chosen[:max_candidates]:
+            missing = [i for i in self.cases if (cid, i) not in self.records]
+            if not any(mid == cid for mid, _ in self.records):
+                first = [r['case_id'] for r in self.recommend_queries(cid, 4)]
+                missing = first + [i for i in missing if i not in first]
+            for start in range(0, len(missing), 100):
+                if self.remaining <= .01:
+                    break
+                self.query(cid, missing[start:start+100])
+        complete = pareto_front([panel_summary(self.candidates[cid], self.cases, self.records) for cid in chosen])
+        atomic_json(self.output/f'stage{self.stage}_endpoints.json', {
+            'status': 'COMPLETE_OPTIMIZATION_ENDPOINTS' if complete else 'NO_COMPLETE_ENDPOINT_YET',
+            'nominated_ids': chosen[:max_candidates], 'nomination_used_proxy_not_recheck': True,
+            'complete_front': complete, 'endpoint_ids': [r['candidate_id'] for r in complete],
+            'recheck_authorized': False})
+        return complete
+
+    def restore_checkpoint(self):
+        data = json.loads((self.output/'checkpoint.json').read_text())
+        if (data['mode'], data['seed'], data['parent_id'], data['cases_sha256'], data['initial_memory_sha256']) != (
+                self.mode, self.seed, self.factory.parent['id'], digest(list(self.cases.values())), digest(self.memory.initial)):
+            raise ValueError('checkpoint trajectory/parent/case/memory identity mismatch')
+        if data['stage_limit'] != self.stage_limit:
+            raise ValueError('cannot change budget on resume')
+        if data.get('search_reserve_fraction',.3)!=self.search_reserve_fraction:
+            raise ValueError('cannot change search reserve on resume')
+        if data.get('belief_feature_sha256') != self.belief.signature:
+            raise ValueError('numerical belief feature contract changed; do not resume old posterior')
+        for key in ('stage', 'step', 'stage_start_cpu', 'active_ids', 'candidates', 'evidence', 'rankings', 'actions', 'pending_links'):
+            setattr(self, key, data[key])
+        from .physical_tools import RANKING_SCHEMA
+        self.ranking_contexts = data.get('ranking_contexts', {})
+        self.rankings = {cid: values for cid, values in self.rankings.items()
+                        if self.ranking_contexts.get(cid, {}).get('implementation', {}).get('schema') == RANKING_SCHEMA}
+        self.search_phase = data['search_phase']
+        self.logical_cpu, self.actual_cpu = data['logical_cpu_seconds'], data['actual_cpu_seconds']
+        self.memory.entries, self.memory.events = data['memory_entries'], data['memory_events']
+        self.records = {(r['candidate_id'], r['case_id']): r for r in self.evidence if r['operation'] == 'query'}
+        # Preserve the first successful observation if a later retried job failed.
+        for row in self.evidence:
+            if row['operation'] == 'query' and row['status'] == 'success':
+                self.records[row['candidate_id'], row['case_id']] = row
+        self.belief.beliefs = {k: (np.array(v['mean']), np.array(v['covariance'])) for k, v in data['posterior'].items()}
+
+
+class WorkflowPlanner:
+    """Fixed adaptive program: evidence -> rank -> reduce -> check -> restore/rate.
+
+    Choice rules are fixed before trajectories. No result-dependent tuning of
+    this controller is permitted after comparison execution begins.
+    """
+    def __init__(self, workspace, target_species=None, threshold=None):
+        self.workspace = workspace
+        self.target_species, self.threshold = target_species, threshold
+
+    def propose(self, context):
+        w = self.workspace
+        operation, payload = 'stop', {}
+        if w.remaining > w.search_reserve_fraction*w.stage_limit:
+            cid = w.active_ids[-1]
+            candidate = w.candidates[cid]
+            rows = [r for (mid, _), r in w.records.items() if mid == cid]
+            if len(rows) < min(8, len(w.cases)):
+                query_ids = [r['case_id'] for r in w.recommend_queries(cid, 4)]
+                if query_ids:
+                    operation, payload = 'query', {'candidate_id': cid, 'case_ids': query_ids}
+            elif cid not in w.rankings:
+                from .physical_tools import validate_targets
+                validate_targets(self.target_species, candidate['keep'])
+                # Same diverse, previously queried panel; actual DRGEP profiles
+                # are obtained in the charged rank tool, not inferred by LLM.
+                chosen = sorted({r['case_id'] for r in rows})[:8]
+                operation, payload = 'rank', {'candidate_id': cid, 'case_ids': chosen,
+                                              'target_species': self.target_species}
+            else:
+                parent_rows = w.records
+                bad = [r for r in rows if r['status'] != 'success' or (
+                    (w.factory.parent['id'], r['case_id']) in parent_rows
+                    and parent_rows[(w.factory.parent['id'], r['case_id'])]['status'] == 'success'
+                    and abs(r['signed_sigma']) > abs(parent_rows[(w.factory.parent['id'], r['case_id'])]['signed_sigma']))]
+                previous = [a for a in w.actions if a['stage'] == w.stage and a['operation'] in EDIT_OPERATIONS and a['status'] == 'success']
+                missing = set(w.factory.parent['keep']) - set(candidate['keep'])
+                if bad and missing:
+                    removed_order = sorted(missing, key=lambda s: (-w.rankings.get(w.factory.parent['id'], {}).get(s, 1), s))
+                    operation, payload = 'restore', {'candidate_id': cid, 'species': removed_order[:max(1, len(missing)//2)]}
+                elif previous and w.factory.rate_bounds and len(previous) % 3 == 0:
+                    ids = sorted(set(w.factory.rate_bounds) & set(candidate['reaction_ids']))[:4]
+                    if ids:
+                        operation, payload = 'rate_optimize', {'candidate_id': cid, 'reaction_ids': ids,
+                                                              'case_ids': sorted({r['case_id'] for r in rows})[:8]}
+                else:
+                    from .physical_tools import threshold_deletions
+                    # Fixed configured threshold, never force a deletion by ordinal rank.
+                    tried = [a for a in previous if a['operation'] == 'reduce' and a['payload']['candidate_id'] == cid]
+                    threshold = self.threshold / (2**min(len(tried), 4)) if self.threshold is not None else None
+                    removed = threshold_deletions(w.rankings[cid], candidate['keep'], w.factory.protected, threshold)
+                    if removed:
+                        operation, payload = 'reduce', {'candidate_id': cid, 'threshold': threshold}
+        return ScientificAction(f'{w.stage}:{w.step}', 'usc_tools', operation, payload,
+                                'fixed adaptive cross-case workflow v1')
+
+    def learn(self, episode):
+        pass
+
+
+class LLMPlanner:
+    def __init__(self, workspace, client, max_calls=60):
+        self.workspace, self.client, self.max_calls = workspace, client, max_calls
+        self.calls, self.llm_wall_seconds = 0, 0.
+        self.call_log = []
+        self.actual_model = None
+
+    def propose(self, context):
+        w = self.workspace
+        if self.calls >= self.max_calls or w.remaining <= w.search_reserve_fraction*w.stage_limit:
+            return ScientificAction('budget-stop', 'usc_tools', 'stop')
+        observation = deepcopy(context.observation)
+        observation['memory_write_enabled'] = w.mode == 'evolved'
+        prompt = (
+            'You control a cross-case chemical mechanism optimization workspace. Choose ONE tool action as JSON. '
+            'All candidates must use the same multi-fuel objective. Missing responses are not passes. '
+            'Never invent solver evidence, change physics, access recheck cases, or execute external tools. '
+            'Use working evidence and inspect_history even when long-term memory is read-only. '
+            'First query batches must include both IDT and 1D flame evidence. Use query_recommendations or choose '
+            'other cases from the complete catalog. All predictions from the proxy are uncalibrated. '
+            'Actions: query {candidate_id,case_ids}; rank {candidate_id,case_ids,target_species}; '
+            'targets must be explicitly chosen, not copied from the protection list. '
+            'reduce {candidate_id,threshold} after qualified rank (0<threshold<1), never count, or '
+            '{candidate_id,species}; restore {candidate_id,species}; rate_edit {candidate_id,multipliers}; '
+            'rate_optimize {candidate_id,reaction_ids,case_ids}; '
+            'inspect_history {kind:evidence|actions|candidates,offset,limit,candidate_id optional}; '
+            'The own raw archive includes all stages, full candidate specifications, and original action payloads '
+            'and rationales. Reading an old candidate does not reactivate it: structural search still restarts '
+            'from the parent each stage. Archive access does not authorize a pending/revoked memory version. '
+            'memory_propose {proposal:{condition,strategy,operations,evidence_ids,counterexample_ids,scope_strata}}; '
+            'memory_revoke {memory_id,reason}; stop {}. Add memory_ids to payload to trace recipes actually used. '
+            'Memory needs at least two own successful macro cases in distinct strata; accepted proposals are '
+            'only hypotheses for the NEXT stage. Do not propose memory if memory_write_enabled is false. '
+            'Return operation, payload_json (JSON-encoded object), rationale. No prose outside JSON.'
+        )
+        started = time.monotonic()
+        self.calls += 1
+        try:
+            response = self.client.complete([{'role': 'system', 'content': prompt},
+                                             {'role': 'user', 'content': json.dumps(observation, allow_nan=False)}])
+            actual_model = getattr(self.client, 'last_model', None)
+            if self.actual_model is not None and actual_model != self.actual_model:
+                raise ValueError('LLM model changed during trajectory')
+            if actual_model is not None:
+                self.actual_model = actual_model
+            raw = json.loads(response)
+            if set(raw) != {'operation', 'payload_json', 'rationale'} or raw['operation'] not in OPERATIONS:
+                raise ValueError('invalid planner action envelope')
+            payload = json.loads(raw['payload_json'])
+            if not isinstance(payload, dict):
+                raise ValueError('action payload must be an object')
+        except Exception as exc:
+            self.llm_wall_seconds += time.monotonic()-started
+            self.call_log.append({'call': self.calls, 'status': 'error', 'type': type(exc).__name__})
+            self._save()
+            raise  # Never silently replace an unavailable LLM with workflow A.
+        self.llm_wall_seconds += time.monotonic()-started
+        self.call_log.append({'call': self.calls, 'stage': w.stage, 'operation': raw['operation'],
+                              'model': getattr(self.client, 'last_model', None),
+                              'configured_model': getattr(getattr(self.client, 'config', None), 'model', None),
+                              'runtime_model_identity_confirmed': getattr(self.client, 'last_model', None) is not None,
+                              'usage': deepcopy(getattr(self.client, 'last_usage', {})),
+                              'memory_version': w.memory.version(w.stage),
+                              'prompt_sha256': digest(observation)})
+        self._save()
+        return ScientificAction(f'{w.stage}:{w.step}', 'usc_tools', raw['operation'], payload, raw['rationale'])
+
+    def _save(self):
+        atomic_json(self.workspace.output/'llm_usage.json', {'calls': self.calls,
+                    'llm_wall_seconds': self.llm_wall_seconds, 'events': self.call_log})
+
+    def learn(self, episode):
+        pass
+
+
+def run_stage(workspace, planner, stage, max_actions=60, resume=False, finalize=False):
+    if not resume:
+        workspace.start_stage(stage)
+    elif workspace.stage != stage:
+        raise ValueError('resume stage mismatch')
+    agent = ScientificMechanismAgent(planner=planner, observer=workspace,
+                                    verifier=workspace, tools=ToolRegistry([workspace]))
+    # New agent per stage discards temporary dialogue/working transitions. Raw
+    # archive, Bayesian state, and gated memory persist in separate objects.
+    episode = agent.run_task(f'usc-{workspace.mode}-{workspace.seed}-stage{stage}',
+                             initial_state={'workspace': str(workspace.output)},
+                             proposal_budget=max(0, max_actions-workspace.step) if workspace.search_phase else 0)
+    if finalize:
+        workspace.finalize_stage()
+    summaries = [panel_summary(workspace.candidates[i], workspace.cases, workspace.records) for i in workspace.active_ids]
+    report = {'mode': workspace.mode, 'seed': workspace.seed, 'stage': stage,
+              'termination': episode.termination_reason,
+              'logical_cpu_seconds': workspace.logical_cpu-workspace.stage_start_cpu,
+              'memory_version': workspace.memory.version(stage), 'candidate_summaries': summaries,
+              'verified_front': pareto_front(summaries), 'actions': len(episode.transitions),
+              'claim_boundary': 'engineering/development execution, not RSI success'}
+    atomic_json(workspace.output/f'stage{stage}.json', report)
+    return report

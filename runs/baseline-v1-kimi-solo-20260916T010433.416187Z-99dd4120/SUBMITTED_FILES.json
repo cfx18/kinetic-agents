@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_reduced_L.yaml",
+    "sha256": "f000f1c44d0ba2d0dbb9fc33f7c86913f4fe2bba2ed28c75bd33b9093a76a1a8",
+    "distributed_path": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/final_artifacts/f000f1c44d0ba2d0dbb9fc33f7c86913f4fe2bba2ed28c75bd33b9093a76a1a8"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_reduced_M.yaml",
+    "sha256": "38cebfd51a4183c28d5cafb94234e0e41798641e2899160e416200eb20ac3a09",
+    "distributed_path": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/final_artifacts/38cebfd51a4183c28d5cafb94234e0e41798641e2899160e416200eb20ac3a09"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechs/usc2_reduced_S.yaml",
+    "sha256": "8d7b0c02a98155ec0228a8b3f6afac0fa8d1a36ad14a6b900e64bdde1af47ee5",
+    "distributed_path": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/final_artifacts/8d7b0c02a98155ec0228a8b3f6afac0fa8d1a36ad14a6b900e64bdde1af47ee5"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "d2a1a9c071019d223dffc30288b322afd7b5dcf126e9eb6767acb676a062f4ee",
+    "distributed_path": "runs/baseline-v1-kimi-solo-20260916T010433.416187Z-99dd4120/solo-max/final_artifacts/d2a1a9c071019d223dffc30288b322afd7b5dcf126e9eb6767acb676a062f4ee"
+  }
+]

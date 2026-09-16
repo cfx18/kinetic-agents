@@ -1,0 +1,28 @@
+# Both profiles inherit the same scientific input and resource contract.
+version: 1
+account:
+  # Dedicated experiment login; never fall back to the desktop account.
+  auth_home: /root/.codex-experiment
+network:
+  # Host-only dotenv; not sourced, copied to runs, or exposed to the Agent.
+  # Explicit file replaces inherited proxy/CA variables, including lowercase ones.
+  env_file: ../.env.network
+  require_proxy: false
+  timeout_seconds: 10
+resources:
+  search_cpu_hours: 512
+  wall_hours: 24
+  evaluation_cpu_hours: 64
+inputs:
+  task: ../tasks/usc_ii
+  accepted: ../local/accepted.json
+  evaluation_base: ../local/evaluation_base.json
+output:
+  root: ../runs
+transcript:
+  enabled: true
+deployment:
+  search_root: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/kinetic-agents
+  # Example immutable runtime paths; supply a genuinely qualified deployment.
+  container_image: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/kinetic-agents-runtime/python.sif
+  evaluation_python: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/kinetic-agents-runtime/venv/bin/python

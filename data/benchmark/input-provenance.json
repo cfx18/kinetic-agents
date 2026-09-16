@@ -1,0 +1,14 @@
+{
+  "scope": "Local data migration only; not permission to redistribute",
+  "task_origin": "research_runtime/openworld_run.py: literal TASK",
+  "parent_origin": "results_research_runtime/solo-team-max-20260914-v2/solo-max/task/parent.yaml",
+  "private_receipt_origin": "results_research_runtime/solo-team-max-20260914-v2/qualification/accepted.json",
+  "private_evaluation_origin": "results_research_runtime/solo-team-max-20260914-v2/evaluation_base.json",
+  "task_sha256": "85715d6567a53b9a67773487163013b079d9ccb2e530a258bda9018e861f0836",
+  "parent_sha256": "eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee",
+  "evaluation_sha256": "aca48265f5f998fd6e6614e212b1ce44b219a5aecc7881fc38028fd7d8d4e421",
+  "receipt_sha256": "12c9e63234407926c1e9b58ed04a567f4d6cbdfec4ab6954a10590b32dc965b3",
+  "old_results_copied": false,
+  "account_files_copied": false,
+  "old_files_modified": false
+}

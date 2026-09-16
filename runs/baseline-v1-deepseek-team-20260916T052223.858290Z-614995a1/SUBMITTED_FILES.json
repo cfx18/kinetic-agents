@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "deliverables/usc2_red_93sp.yaml",
+    "sha256": "4505053b2added194e60bbdd6162f5ce4de490fe03759e370a00fea154d5c254",
+    "distributed_path": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/final_artifacts/4505053b2added194e60bbdd6162f5ce4de490fe03759e370a00fea154d5c254"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "deliverables/usc2_red_69sp.yaml",
+    "sha256": "1a06e8cdfbe1b7e3cc70c5716d1f0224064bba9bfd3e65358f98e12d25315e81",
+    "distributed_path": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/final_artifacts/1a06e8cdfbe1b7e3cc70c5716d1f0224064bba9bfd3e65358f98e12d25315e81"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "deliverables/usc2_red_63sp.yaml",
+    "sha256": "6564dcae49eaf13dbf7a360681f39fe7029b9ee06a6114b2ca84dfbcd3b06073",
+    "distributed_path": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/final_artifacts/6564dcae49eaf13dbf7a360681f39fe7029b9ee06a6114b2ca84dfbcd3b06073"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "8e4753ec43b3dea11c1031ef06503999ab74b30899039cca23f128e20b0b9447",
+    "distributed_path": "runs/baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1/team-max/final_artifacts/8e4753ec43b3dea11c1031ef06503999ab74b30899039cca23f128e20b0b9447"
+  }
+]

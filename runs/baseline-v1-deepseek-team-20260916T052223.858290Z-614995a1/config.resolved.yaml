@@ -1,0 +1,40 @@
+version: 1
+account:
+  auth_home: /root/.codex-experiment
+network:
+  env_file: /root/shared-nvme/Caifeixue/AgenticRL/kinetic_agents/.env.network
+  require_proxy: true
+  timeout_seconds: 10
+resources:
+  search_cpu_hours: 512
+  wall_hours: 24
+  evaluation_cpu_hours: 64
+inputs:
+  task: /root/shared-nvme/Caifeixue/AgenticRL/kinetic_agents/tasks/usc_ii
+  accepted: /root/shared-nvme/Caifeixue/AgenticRL/kinetic_agents/local/accepted.json
+  evaluation_base: /root/shared-nvme/Caifeixue/AgenticRL/kinetic_agents/local/evaluation_base.json
+output:
+  root: /root/shared-nvme/Caifeixue/AgenticRL/kinetic_agents/runs
+  prefix: baseline-v1-deepseek-team
+transcript:
+  enabled: true
+deployment:
+  search_root: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/kinetic-agents
+  container_image: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/solo-team-max-20260914-v1/runtime/python.sif
+  evaluation_python: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/pilot-env-20260912-b/venv/bin/python
+profile: team
+model:
+  name: deepseek-flash
+  reasoning_effort: max
+  max_agents: 3
+  researcher_model: deepseek-flash
+  researcher_effort: max
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: api
+  protocol: responses
+  env_file: /root/shared-nvme/Caifeixue/AgenticRL/.env.deepseek-drg-ablation
+  base_url_env: DEEPSEEK_BASE_URL
+  api_key_env: DEEPSEEK_API_KEY

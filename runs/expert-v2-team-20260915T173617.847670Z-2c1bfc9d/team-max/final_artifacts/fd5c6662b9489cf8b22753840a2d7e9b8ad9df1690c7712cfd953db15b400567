@@ -1,0 +1,213 @@
+# USC-II skeletal reduction: accuracy and size trade-off
+
+## Result and recommendation
+
+Three new skeletal mechanisms reduce the supplied **111-species, 784-reaction** parent. The **58-species / 420-reaction model is the recommended general option within the tested domain**: it removes 47.7% of species and 46.4% of reactions while retaining both synthetic and external-case parent fidelity. The 53- and 49-species options offer greater compression for the tested air mixtures, with an explicit failure of their flame-fidelity targets in oxygen-diluted, rich acetylene.
+
+| Submitted mechanism | Species / reaction reduction | Max ignition error to parent | Max flame-speed error to parent |
+|---|---:|---:|---:|
+| [58 species / 420 reactions](mechanisms/usc2_58sp_420rxn.yaml) | 47.7% / 46.4% | 4.04% | 1.17% |
+| [53 species / 374 reactions](mechanisms/usc2_53sp_374rxn.yaml) | 52.3% / 52.3% | 3.50% | 4.91% |
+| [49 species / 330 reactions](mechanisms/usc2_49sp_330rxn.yaml) | 55.9% / 57.9% | 8.14% | 9.50% |
+
+These maxima cover **234 ignition and 45 flame conditions per mechanism**, including 90 conditions reserved before design. All 1,116 parent/candidate synthetic simulations succeeded and all ignition cases ignited. Relative errors are `prediction / reference - 1`; displayed maxima use absolute values. These are finite-case bounds, not guarantees across a continuous parameter range.
+
+External comparison is a separate result: the recommended mechanism has **28.77% mean absolute ignition error** over 26 observed conditions and **6.70% mean absolute flame-speed error** over 24 targets. Parent errors are 28.97% and 6.77%. Reduction preserves the parent's useful behavior and substantial existing ignition discrepancies; it does not establish uniformly accurate experimental prediction.
+
+![Size and fidelity trade-off](figures/final_tradeoff.png)
+
+## 1. Intended domain and evidence coverage
+
+The application domain is high-temperature oxidation of H2, 30/70 molar H2/CO, CH4, 70/30 molar CH4/H2, C2H2, C2H4, C2H6, C3H6 and C3H8. This tests hydrogen, CO chemistry, alkane, alkene and alkyne families and two blends. It deliberately narrows USC-II's original scope: C4 fuels, aromatic fuels, oxygenated fuels, low-temperature/peroxy ignition, soot and pollutant yields are omitted. Higher-carbon intermediates remain essential even for these smaller fuels.
+
+Park et al. (2016), *Reaction models*, describes USC-II as 111 species/784 reactions for H2/CO and C1–C4 high-temperature chemistry, and summarizes its ignition, flame and species-profile validation, including benzene/toluene. Shao et al. (2018) gives the Wang et al. (2007) USC-Mech-II citation and an independent shock-tube assessment. Original USC-II website/mirror retrieval attempts failed; this report does not claim to have recovered the full original validation archive. Park's optimized kinetic model is **not** used here.
+
+### Synthetic reference design
+
+All synthetic mixtures use dry air, O2:N2 = 1:3.76. Temperature values below are initial reactor or unburned flame temperatures. One atmosphere is 101325 Pa.
+
+| Role | Observable | Conditions, crossed over all nine fuels/blends | Count |
+|---|---|---|---:|
+| Development | Adiabatic constant-volume ignition, max dT/dt | 1100/1400/1700 K; 1/10 atm; phi 0.6/1/1.5 | 162 |
+| Development | Unstretched freely propagating flame speed | 300 K; 1 atm; phi 0.7/1/1.4 | 27 |
+| Reserved confirmation | Ignition | 1200/1550 K; 3/20 atm; phi 0.8/1.2 | 72 |
+| Reserved confirmation | Flame speed | 400 K; 3 atm; phi 0.85/1.15 | 18 |
+
+Lean/rich mixtures and multiple pressures probe radical branching, termination and thermal propagation. Confirmation includes new temperatures, mixtures and pressures, including a pressure extension. This is a designed coverage grid, not a statistical sample of an operating population. It omits extinction, strain-dependent flames, turbulent combustion, engine heat loss, facility histories, and experimental ignition for ethane, acetylene and the exact synthetic H2/CO and CH4/H2 blends. Pure-H2 external flame measurements were not included; light-fuel flame evidence is H2/CO.
+
+Before screening, maximum parent-fidelity tolerances were set to **5% ignition / 3% flame** (tight), **10% / 5%** (main), and **20% / 10%** (exploratory compression). These engineering screening choices are smaller than many observed parent/experiment discrepancies, yet permit meaningful compression. They are not measurement uncertainties. No tolerance was relaxed after a candidate failed.
+
+## 2. Method and how evidence changed it
+
+All submitted YAML files were **designed in this run** by species and reaction deletion from `inputs/parent.yaml`; no existing reduced mechanism was downloaded and relabeled. Parent SHA-256: `eefd846bf67253ecf8a35c99bf2387b9a38b3f69a94640c013d99b0f16277aee`. No rate, thermodynamic or transport parameters were fitted.
+
+1. A carbon-number cutoff supplied an inspectable baseline. Keeping only C≤3 species gave 55 species/395 reactions and a **590.17%** maximum ignition error despite only 2.63% flame error. It was rejected.
+2. Parent development trajectories and flame profiles supplied **22,453 sampled states** for directed relation graph with error propagation (DRGEP). The direct coefficient is `r_AB = abs(sum_j nu_Aj q_j delta_Bj) / max(P_A,C_A)`, using net reaction contributions; path importance is the maximum product of coefficients along directed paths. State-wise maxima form the species ranking.
+3. Initial targets included radicals and CO even in pure-H2 cases. Numerically tiny carbon pathways then received misleading importance. Targets were changed to each case's actual fuel species and O2; all domain fuels, AR/N2, O2, H2O, CO2 and H/O/OH/HO2/H2O2 remained protected independently of graph rank.
+4. Complete macroscopic tests showed that graph threshold alone was insufficient. Threshold 0.1 retained 93 species/679 reactions with 2.82% ignition and 0.59% flame error; 0.3 gave 86/622 and 20.16%/2.12%; thresholds 0.5–0.9 caused 471–933% maximum ignition errors. This prompted initial deletion sensitivity following the established DRGEP-plus-sensitivity approach described by pyMARS.
+5. Each of 75 unprotected species was individually deleted from the 93-species mechanism and tested on all 162 development ignition cases plus nine stoichiometric flames. Deletions were ranked by incremental change from that 93-species baseline, `max(delta_ignition/0.10, delta_flame/0.05)`. Ranking by absolute parent error can mask small deletion effects, so that initial score was not used for joint selection. Every joint candidate was then tested on all 189 development conditions.
+6. Cumulative deletion of 35, 40 and 44 ranked species produced the submitted 58/420, 53/374 and 49/330 models. All final development flames were recomputed on finer grids. Candidates and hashes were frozen in `results/candidate_freeze.json` before any confirmation or external simulation result was read. External findings changed the recommendation and scope, not the frozen chemistry.
+
+### Alternative designs and rejected attempts
+
+| Development candidate | Species/reactions | Max ignition / flame error | Interpretation |
+|---|---:|---:|---|
+| C≤3 structural cutoff | 55/395 | 590.17% / 2.63% | Reject: ignition chemistry lost |
+| Sensitivity cumulative 25 deletions | 68/512 | 2.97% / 0.90% | Accurate, larger |
+| 30 deletions | 63/450 | 2.52% / 0.65% | Accurate, larger |
+| 45 deletions | 48/324 | 7.24% / 11.32% | Reject: exceeds exploratory flame limit |
+| Pathway design retaining selected C4 chemistry | 61/430 | 8.83% / 0.95% | Viable main-domain alternative |
+| Same plus C4H10 | 62/432 | 4.37% / 1.03% | Larger tight alternative; inherited CH2OCH thermo jump |
+
+These exploratory flame figures use the initial grid, so their sub-percent differences should not be overinterpreted. Final submitted figures use the common finer grid. Intermediate 51/366 and 50/343 candidates gave fine-grid development ignition/flame errors of 6.80%/5.15% and 7.11%/9.43%; neither offered a distinct tolerance tier over the selected models. Errors are nonmonotonic: a smaller model can benefit from cancellation without implying a better physical description.
+
+Flux inspection explains why a fuel carbon-number cutoff was unsafe. In an acetylene induction state near 1150 K, omitted `C2H + C2H2 <=> C4H2 + H` and `C4H2 + OH <=> H + H2C4O` contributed about 0.0526 and 0.0251 kmol m^-3 s^-1 of H production. A separate propylene pathway test implicated `CH3 + aC3H5 (+M) <=> C4H81 (+M)` termination; adding C4H81 reduced an approximately 35% ignition error to about 9%. These are specific-state observations, not global causal proofs. Raw diagnoses and alternative files remain in `results/` and `mechanisms/`.
+
+The custom DRGEP matrix agreed with the inspected pyMARS implementation at five USC-II states within 7e-15; path coefficients agreed with SciPy negative-log Dijkstra within 3e-17, and a hand-checkable graph passed. The numerical driver also received an independent, read-only researcher code review with no concrete bug identified in its scoped formulas and deletion logic. These checks support implementation consistency, not scientific certification. The final files rebuild byte-for-byte from the parent, ranking and deletion records (`scripts/rebuild_final.py`).
+
+## 3. Parent-reference results
+
+| Species | Development max ignition / flame | Reserved max ignition / flame | All-case 95th-percentile absolute ignition / flame error |
+|---:|---:|---:|---:|
+| 58 | 3.87% / 0.94% | 4.04% / 1.17% | 1.97% / 0.88% |
+| 53 | 3.25% / 4.91% | 3.50% / 2.08% | 2.02% / 3.18% |
+| 49 | 7.24% / 9.50% | 8.14% / 5.07% | 4.77% / 4.94% |
+
+The tight, main and exploratory tiers respectively pass on the synthetic grid. Largest errors occur in propane ignition and rich acetylene flames. Per-case and per-fuel results, including signed errors, are in `results/final_fidelity_comparison.json` and `.csv`. Counts are the primary complexity measure; wall times were collected during shared parallel batches and are not presented as controlled speed benchmarks. No minimality or global optimality is claimed.
+
+The recommended 58-species model's maxima by fuel across development and confirmation are:
+
+| Fuel/blend | Max ignition error | Max flame error |
+|---|---:|---:|
+| acetylene | 1.080% | 0.292% |
+| ethane | 0.584% | 0.106% |
+| ethylene | 0.835% | 0.270% |
+| hydrogen | 0.181% | 0.031% |
+| methane | 0.005% | 0.084% |
+| methane_hydrogen | 0.013% | 0.074% |
+| propane | 4.042% | 1.168% |
+| propylene | 2.100% | 0.860% |
+| syngas | 0.171% | 0.051% |
+
+## 4. Experimental evidence and measurement comparability
+
+`inputs/experimental_cases.json` preserves numerical values, actual or reconstructed mole fractions, units, source identifiers/URLs, diagnostic definitions, uncertainties and assumptions. Its 54 entries represent **50 distinct observed conditions plus four impurity-assumption variants**, not 54 independent experiments or studies. Observations were selected before candidate freezing and used only for final assessment. Source coverage and uncertainty types remain separate.
+
+### Ignition measurements
+
+There are 12 SFCPD targets from five studies: Petersen et al. (1996), Lifshitz et al. (1971), Shao et al. (2018), Qin et al. (2001), and Brown & Thomas (1999). Fourteen additional rows were transcribed directly from Shao's primary appendix, avoiding duplicate selected SFCPD rows. These cover H2, CH4, C2H4, C3H6, C3H8, CH4/C2H4 and C2H4/C3H6 blends at **1109–1905 K, 0.95–64 atm**, nominal phi 1 or 2 (1.00–2.02 from rounded reported compositions), and **91.2–99.85% Ar** by mole. Exact compositions are retained rather than inferred from fuel labels or phi alone.
+
+Shao's primary author manuscript was read at `https://www.osti.gov/servlets/purl/1538299`. Its reflected shock tube has a 5-cm driven-section diameter; diagnostics are 1.1 cm from the end wall. OH* near 306 nm, IR absorption near 3.39 micrometres and pressure are used. Ignition onset is the maximum-signal-slope tangent extrapolated to the pre-ignition baseline. The reported post-shock pressure-rise nonideality was limited to 0.02/ms and judged negligible by the authors. We use a homogeneous adiabatic constant-volume reactor; boundary layers and individual facility histories are not modeled.
+
+The pressure tangent is matched directly where pressure delay is tabulated. Where only OH* is available it is explicitly a **pressure-based proxy**, consistent with Shao's USC-Mech2 comparison because that mechanism lacks OH*. Ground-state OH is not OH* emission. Older SFCPD cases use their metadata-specified maximum OH growth or pressure growth diagnostics; their full primary apparatus/diagnostic methods were not recovered, so exact comparability remains uncertain. All diagnostic keys and proxy flags are retained per row.
+
+Shao's typical stated uncertainty is 10%, rising to 15% below 100 microseconds; the confidence level is unspecified. SFCPD provides evaluated multiplicative factors, which are not original instrument-error bars. Four hydrogen targets also provide an **assumed 80 ppb atomic-H impurity** for modeling. This was not a measured component: clean compositions are the main comparison; four added-H variants are reported separately. Their mean absolute errors are approximately 28% across all models, versus about 33% for the four clean-H2 targets. Such sensitivity does not validate the impurity assumption.
+
+### Flame-speed measurements
+
+The 24 selected conditions span **298–400 K, 1–5 atm, phi approximately 0.63–1.40**, for mixtures of CH4, H2/CO, C2H2, C2H4, C2H6, C3H6 and C3H8. Twelve are SFCPD evaluated targets (four each CH4, H2/CO, C2H4), which may aggregate several studies. Six are Park et al. (2016) original propane/propene measurements. Six acetylene/ethane values are secondary transcriptions of reference 24 reproduced in Park Table 3; they are not new Park measurements.
+
+Park's full text and methods were read at `https://pmc.ncbi.nlm.nih.gov/articles/PMC5120407/`. Its counterflow twin flames use 1.4-cm nozzle diameter/separation, 298 K and 1 atm, PIV with silicone-oil droplets, upstream minimum velocity as reference speed, and nonlinear extrapolation to zero strain. Reported speed uncertainties are two-sigma; phi uncertainty is within 1%. The freely propagating adiabatic calculation approximates that extrapolated unstretched observable, not the finite-strain measured velocity. Radiation, heat loss and remaining stretch extrapolation error are not simulated.
+
+Acetylene uses the reported **13% O2 / 87% N2 oxidizer**. Where Park states fuel/air and phi, air is reconstructed as O2:N2=1:3.76 and explicitly labeled a model assumption. The external flame comparisons use multicomponent transport plus Soret diffusion in the one-dimensional simulations. Keromnes et al. (2013) full-text methods informed H2/CO configuration/transport cautions; Bouvet and Bosschaart were available only at abstract/metadata level. No helium target was simulated because helium is absent from the supplied parent.
+
+A researcher parser initially consumed the next percentage into a species name. That v1 dataset was rejected and archived **before simulation**. The corrected 92-row dataset was checked for species, composition sums and phi. Thirteen helium rows, five incomplete-mixture rows and six phi-inconsistent rows were flagged; those unsuitable records were excluded without guessing missing components. The selected cases passed explicit Cantera composition checks. Listed uncertainties were retained, including five dataset entries below 5%; no artificial uncertainty floor was imposed.
+
+### Quantitative external results
+
+All 216 external parent/candidate calculations succeeded. All ignition diagnostics had interior peaks and met their explicit ignition-rise gate. Mean absolute percentage error (MAPE) is descriptive only: points are correlated within series and uncertainties have different definitions. Interval coverage is neither a common-confidence statistical test nor a count of independent successful studies.
+
+| Model | Ignition MAPE / max | In reported interval | Flame MAPE / max | In reported interval | External max parent error, ignition / flame |
+|---|---:|---:|---:|---:|---:|
+| parent | 28.97% / 61.90% | 10/26 | 6.77% / 16.14% | 11/24 | 0.00% / 0.00% |
+| usc2_58sp_420rxn | 28.77% / 61.33% | 10/26 | 6.70% / 16.14% | 10/24 | 2.56% / 1.19% |
+| usc2_53sp_374rxn | 28.95% / 61.37% | 11/26 | 6.83% / 16.90% | 10/24 | 3.97% / 7.08% |
+| usc2_49sp_330rxn | 29.65% / 61.32% | 10/26 | 7.39% / 21.35% | 13/24 | 7.56% / 13.57% |
+
+The rich, oxygen-diluted acetylene point at phi=1.4 exposes an extrapolation limit: parent flame speed is about 0.425 m/s, the 49-species prediction 0.483 m/s, and the observation 0.398 ± 0.013 m/s (reported two-sigma). The 53- and 49-species parent deviations are **7.08% and 13.57%**, exceeding their 5% and 10% targets. The 58-species deviation is 1.19%. Thus the smaller models' synthetic-air passes cannot be extended to all external compositions.
+
+The largest ignition discrepancy is the Shao ethylene/propylene blend at 1212 K and 15.6 atm: observed pressure-tangent delay 2.439 ms versus parent 0.929 ms and 58-species 0.943 ms. This particular comparison matches the measured pressure diagnostic directly; the separately tabulated OH* delay is 2.408 ms. The mixture is 0.53% C2H4, 0.53% C3H6, 3.96% O2 and 94.98% Ar by mole. The approximately 62% parent underprediction is inherited. Shao independently reported substantial USC-II ethylene discrepancies. A reduced model's occasional higher interval count can reflect error cancellation and is not evidence of improved kinetics.
+
+| Source series (conditions are correlated) | Count | Parent / 58-species MAPE | Parent / 58-species interval count |
+|---|---:|---:|---:|
+| BT1999_C3H8_O2_Ar | 2 | 14.78% / 14.80% | 2 / 2 |
+| LSB1971_CH4_O2_Ar | 2 | 30.07% / 30.06% | 0 / 0 |
+| PDR1996_H2_O2_Ar_STM | 4 | 32.59% / 32.50% | 3 / 3 |
+| QYG2001_C3H6_O2_Ar | 2 | 25.88% / 25.12% | 2 / 2 |
+| SDH2018_C2H4_O2_Ar | 2 | 29.05% / 29.38% | 1 / 1 |
+| SDH2018_primary_appendix | 14 | 30.23% / 29.95% | 2 / 2 |
+| Park2016_original | 6 | 5.04% / 4.57% | 3 / 3 |
+| Park2016_republished_ref24 | 6 | 8.13% / 8.46% | 1 / 0 |
+| SFCPD_C2H4 | 4 | 6.73% / 6.54% | 2 / 2 |
+| SFCPD_CH4 | 4 | 8.25% / 8.25% | 2 / 2 |
+| SFCPD_H2+CO | 4 | 5.87% / 5.87% | 3 / 3 |
+
+![Experimental ignition comparisons](figures/external_ignition.png)
+
+![Experimental flame-speed comparisons](figures/external_flame.png)
+
+## 5. Numerical and physical consistency
+
+Cantera **3.2.0**, Python **3.12**, NumPy **2.5.3**, SciPy **1.18.1** and PyYAML **6.0.3** were used. Offline wheels and software versions are archived. Reactor tolerances are rtol=1e-9, atol=1e-18. The constant-volume diagnostic derivatives use Cantera rates:
+
+`dT/dt = -sum(u_k omega_k)/(rho cv)`
+
+`dP/dt = R [T sum(omega_k) + (rho/Wbar) dT/dt]`.
+
+Pressure onset is `t_at_max_dPdt - (P-P0)/(dP/dt)`. Synthetic ignition uses maximum dT/dt. Highly diluted shock cases use a 0.01-K rise gate rather than the synthetic 200-K gate; the gate does not replace the chosen signal diagnostic. Metrics use every adaptive step. Final raw signal archives retain 200 distributed step indices plus exact diagnostic extrema; flame profiles retain the complete converged grid.
+
+Synthetic flames use mixture-averaged transport and final refinement slope/curve 0.03/0.06, ratio 3, starting width 0.04 m, with solver-driven domain expansion. Eighteen earlier parent ignition checks at rtol=1e-11, atol=1e-20 and tau/500 maximum time step changed delay by at most **0.0515%**. Nine initial flame refinements changed speed by up to **1.593%**, motivating the common final finer grid. Doubling domain width in H2, CH4 and C2H2 tests changed speed by less than **0.00021%**. Multicomponent/Soret changed three parent examples by -10.96% (H2), -7.21% (syngas), and -1.15% (CH4), demonstrating that transport assumptions can exceed reduction error.
+
+Final development convergence checks use four selected ignition cases, including worst-error propane cases, and five flames spanning H2, methane, acetylene and propane. Ignition tolerances tighten as above; flame slope/curve becomes 0.015/0.03. The table is a convergence check on selected cases, not a replacement for all-grid fidelity statistics.
+
+| Model | Observable | Cases | Max change on refinement | Max refined parent error within subset |
+|---|---|---:|---:|---:|
+| parent | ignition | 4 | 0.0009% | 0.0000% |
+| parent | flame | 5 | 0.6820% | 0.0000% |
+| usc2_49sp_330rxn | ignition | 4 | 0.0004% | 7.2449% |
+| usc2_49sp_330rxn | flame | 5 | 0.6494% | 9.4677% |
+| usc2_53sp_374rxn | ignition | 4 | 0.0011% | 3.2519% |
+| usc2_53sp_374rxn | flame | 5 | 0.6444% | 4.8993% |
+| usc2_58sp_420rxn | ignition | 4 | 0.0009% | 3.8716% |
+| usc2_58sp_420rxn | flame | 5 | 0.6667% | 0.9119% |
+
+External follow-up checks apply the same tightening to two ignition cases and three flames, including the rich acetylene failure and the largest methane experimental flame discrepancy. Chemistry remains frozen.
+
+| Model | Observable | Cases | Max change on refinement | Max refined parent error within subset |
+|---|---|---:|---:|---:|
+| parent | ignition | 2 | 0.0945% | 0.0000% |
+| parent | flame | 3 | 0.3096% | 0.0000% |
+| usc2_49sp_330rxn | ignition | 2 | 0.1083% | 1.5261% |
+| usc2_49sp_330rxn | flame | 3 | 0.3174% | 13.5810% |
+| usc2_53sp_374rxn | ignition | 2 | 0.1213% | 1.3988% |
+| usc2_53sp_374rxn | flame | 3 | 0.3261% | 7.0945% |
+| usc2_58sp_420rxn | ignition | 2 | 0.0853% | 1.5041% |
+| usc2_58sp_420rxn | flame | 3 | 0.3043% | 1.2510% |
+
+Every retained reaction is element-balanced. Retained NASA coefficients and transport parameters are identical to the parent; retained forward constants and net rates agree exactly at ten common test states (500–3500 K, 1/20 atm). Species cp is positive on a 101-temperature grid from 300 to 3500 K. No final candidate retains a >1%-scale NASA mid-temperature discontinuity under the audit's cp, h/RT and s/R criteria. Parent and several rejected larger candidates do have inherited jumps.
+
+For the **408 final confirmation/external ignition integrations**, maximum relative internal-energy drift is 1.72e-8 and maximum elemental mass-fraction drift is 1.20e-12. Earlier development summaries did not all record these fields; they are not silently counted as passing this drift audit. Across 168 final confirmation/external flame profiles, relative mass-flux range is below 1.49e-8; endpoint enthalpy residual normalized by the audit's thermal scale is below 0.20%, and maximum endpoint elemental mass-fraction difference is below 2.93e-4. These residuals describe finite-grid/differential-diffusion solutions, separately from exact reaction stoichiometric balance.
+
+Three parent synthetic post-ignition tails exceed some species' nominal 3500-K NASA range, reaching 3711 K. No development maximum-dT/dt ignition point exceeds 3500 K (largest 3125 K). This inherited thermodynamic extrapolation remains a limitation; it was not corrected by fitting.
+
+## 6. Reproducibility, failures and stopping
+
+See [REPRODUCE.md](REPRODUCE.md) for commands and an artifact map. Final model metadata lists every retained species and original zero-based reaction index. `results/candidate_freeze.json`, `results/rebuild_verification.json`, per-case inputs/outputs, raw traces/profiles, logs, downloaded papers/HTML and source URLs are retained. The custom scientific batch method is versioned as a trial skill with a pinned code hash and completed trusted execution receipts; registration and execution are distinct from proof of efficacy.
+
+A final independent researcher source review checked the rich-acetylene composition, observed value, uncertainty, calculated deviations and primary/republished labels. It found no numerical correction in that scope and prompted clearer wording that multicomponent/Soret transport describes the simulations. The review is retained in `agents/01a0a625-c61e-7d91-97db-ca3f74e1a687/final_flame_interpretation_review.md`; it is a bounded review, not independent experimental or simulation replication.
+
+Public access outcomes influenced coverage: SFCPD pages were usable; several hydrogen/CO ignition detail URLs returned 404. ReSpecTh's landing page was accessible but the attempted data route required registration; no account was requested. The public ChemKED repository was inspected but did not yield a focused C0–C3 shock dataset through that route. Original USC-II website/mirrors were unavailable. Primary paper retrieval therefore focused on Shao and Park, with older-method coverage explicitly incomplete.
+
+Preserved unsuccessful work includes the carbon cutoff, overly aggressive graph thresholds, 48-species flame failure, incomplete pathway candidates, rejected v1 data parser, a remote submission rejected with ConnectionError (zero charged execution, then retried), and missing trace archives from two earlier large development jobs. Those jobs returned macroscopic per-case summaries; the reason some large trace archives were not returned is unknown. Final confirmation and external archives were all retrieved. A local audit aggregation initially assumed older summaries contained new conservation fields; that postprocessing error was corrected by explicitly reporting the 408 integrations that recorded them. No solver failure or missing field was converted into a scientific pass.
+
+The search stops with three reproducible trade-offs, successful reserved synthetic tests, measured external limitations and numerical/physical checks. The 14 settled remote jobs plus one rejected submission charged 180,672 allocated core-seconds (50.2 core-hours), including allocated idle time; this is not an actual CPU-utilization measurement. The run did not exhaust its allowance. There is no evidence of global optimality, and further deletion would require new development evidence and a new reserved confirmation set. The recommended 58-species model is the most defensible broad tested choice; the 53- and 49-species mechanisms are provided as smaller, explicitly limited air-domain options. Experimental discrepancies and omitted domains remain unresolved.
+
+## References and source locations
+
+- Wang et al. (2007), *USC Mech Version II: High-Temperature Combustion Reaction Model of H2/CO/C1–C4 Compounds*. Original web resource not recovered; scope/citation checked through the supplied mechanism, Park 2016 and Shao 2018.
+- Park et al. (2016), *Chemical kinetic model uncertainty minimization through laminar flame speed measurements*, Combustion and Flame. DOI [10.1016/j.combustflame.2016.07.004](https://doi.org/10.1016/j.combustflame.2016.07.004). Full text/methods/Table 3 read via [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC5120407/); raw files in `agents/flame-evidence/raw/`.
+- Shao, Davidson & Hanson (2018), *A shock tube study of ignition delay times in diluted methane, ethylene, propene and their blends at elevated pressures*, Fuel 225, 370–380. DOI [10.1016/j.fuel.2018.03.146](https://doi.org/10.1016/j.fuel.2018.03.146). [Primary manuscript](https://www.osti.gov/servlets/purl/1538299), retained in `agents/ignition-evidence/raw/`.
+- Mestas, Clayton & Niemeyer (2019), *pyMARS: automatically reducing chemical kinetic models in Python*, JOSS 4(41), 1543. DOI [10.21105/joss.01543](https://doi.org/10.21105/joss.01543). Full paper read; archived `sources/pymars_joss.pdf` and inspected [pyMARS source](https://github.com/Niemeyer-Research-Group/pyMARS), `main/src/pymars/drgep.py`, tests and MIT license.
+- Pepiot-Desjardins & Pitsch (2008), DRGEP, DOI 10.1016/j.combustflame.2007.10.020; Niemeyer, Sung & Raju (2010), DRGEPSA, DOI 10.1016/j.combustflame.2009.12.022. Method descriptions consulted through pyMARS; full original articles not claimed read.
+- [Stanford FFCM-2/SFCPD](https://web.stanford.edu/group/haiwanglab/FFCM2/docs/ExperimentalData/SFCPD/), individual validation URLs and study identifiers preserved per input row. Corrected flame evidence: `agents/01a0a625-c61e-7d91-97db-ca3f74e1a687/EVIDENCE_REPORT.md`; ignition evidence: `agents/ignition-evidence/REPORT_v2.md`.
+- [Cantera documentation](https://cantera.org/): stable mechanism-reduction and reflected-shock examples inspected and archived under `sources/`. Software supplies the trusted thermochemical/solver implementation; the selected cases and reduction workflow are our design.

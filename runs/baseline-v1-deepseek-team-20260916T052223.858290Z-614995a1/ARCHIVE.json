@@ -1,0 +1,37 @@
+{
+  "run_id": "baseline-v1-deepseek-team-20260916T052223.858290Z-614995a1",
+  "task_variant": "baseline-v1",
+  "profile": "team",
+  "harness": {
+    "name": "codex",
+    "executable": "codex"
+  },
+  "model": {
+    "name": "deepseek-flash",
+    "reasoning_effort": "max",
+    "max_agents": 3,
+    "researcher_model": "deepseek-flash",
+    "researcher_effort": "max"
+  },
+  "lifecycle_metadata": {
+    "status": "COMPLETED",
+    "phase": "postrun_finished",
+    "captured_at": 1789563492.1276834
+  },
+  "endpoint_status_metadata": "COMPLETE",
+  "owner_finished_marker_captured": true,
+  "snapshot_label": "ended_run_evidence_snapshot",
+  "capture_start_utc": "2026-09-16T15:02:50.649571+00:00",
+  "capture_end_utc": "2026-09-16T15:43:25.786101+00:00",
+  "distribution_scope": "results_only",
+  "raw_logs_distributed": false,
+  "source_files_retained": 34,
+  "source_file_bytes_retained": 5915118,
+  "source_full_snapshot_files_local_only": 2506,
+  "arm_directory": "team-max",
+  "notes": [
+    "Generated inventory from captured metadata, not a reconstructed trajectory.",
+    "Raw logs are retained locally and NOT replaced by synthetic records.",
+    "Capture dates describe historical evidence, not current live state."
+  ]
+}

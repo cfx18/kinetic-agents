@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77", "wheel", "packaging>=24.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kinetic-agents"
+version = "0.2.0"
+description = "Observable native-agent research with shared tasks and independent evaluation"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["PyYAML>=6,<7"]
+
+[project.optional-dependencies]
+evaluation = ["cantera==3.0.1", "numpy==1.26.4", "scipy==1.15.3", "nrg-pymars==1.2.0", "h5py==3.11.0", "networkx==3.6.1", "ruamel.yaml==0.19.1"]
+test = ["pytest>=8,<9"]
+
+[project.scripts]
+kinetic-agents = "kinetic_agents.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"kinetic_agents.evaluation._frozen" = ["pins/*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "--import-mode=importlib"

@@ -1,0 +1,20 @@
+# Original no-expert-guidance task; all team members share the arm account.
+base: common.yaml
+profile: team
+output_prefix: baseline-v1-kimi-team
+harness:
+  name: kimi_code_node
+  executable: /opt/kinetic-agents-runtime/node_modules/@moonshot-ai/kimi-code/dist/main.mjs
+backend:
+  auth: api
+  protocol: chat_completions
+  env_file: ../.env
+  base_url_env: KIMI_API_BASE_URL
+  api_key_env: KIMI_API_KEY
+model:
+  name: kimi-k3
+  reasoning_effort: max
+  context_tokens: 1048576
+  max_agents: 3
+  researcher_model: kimi-k3
+  researcher_effort: max

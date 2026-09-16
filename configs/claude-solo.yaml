@@ -1,0 +1,16 @@
+base: common.yaml
+profile: solo
+output_prefix: claude-solo
+harness:
+  name: claude_code
+  executable: claude # 不在 PATH 时填安装位置的绝对路径
+backend:
+  auth: api
+  protocol: anthropic
+  env_file: ../.env
+  base_url_env: CLAUDE_API_BASE_URL
+  api_key_env: CLAUDE_API_KEY
+model:
+  name: replace-with-your-model-id
+  reasoning_effort: high
+  max_agents: 1

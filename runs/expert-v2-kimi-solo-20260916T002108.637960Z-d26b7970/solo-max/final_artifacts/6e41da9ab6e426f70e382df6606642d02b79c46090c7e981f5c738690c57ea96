@@ -1,0 +1,304 @@
+# Autonomous kinetic mechanism reduction of USC Mech II
+
+**Parent mechanism:** USC Mech II (Wang et al. 2007), 111 species / 784 reactions,
+Cantera 3.1 YAML supplied as `parent.yaml` (unmodified copy:
+`mechanisms/parent_USC_Mech_II.yaml`).
+
+**Deliverables (reduced mechanisms designed in this run):**
+
+| file | species | reactions | target domain | fidelity vs parent (max) |
+|------|---------|-----------|---------------|--------------------------|
+| `mechanisms/USC2_reduced_C0C3_86sp.yaml` | 86 | 613 | C0–C3 (H2/CO/CH4/C2H6/C2H4/C2H2/C3H8/C3H6) | IDT 3.9 %, LBV 0.7 % |
+| `mechanisms/USC2_reduced_C0C1_62sp.yaml` | 62 | 370 | C0–C1 (H2/CO/CH4) | IDT 2.0 %, LBV 2.5 % |
+| `mechanisms/USC2_reduced_C0C1_49sp.yaml` | 49 | 290 | C0–C1 (H2/CO/CH4) | IDT 3.2 %, LBV 12.8 % |
+
+All three are experimentally equivalent to the parent within their domains
+(max deviation from the parent on the experimental target set: 3.4 % /
+5.5 % / 9.7 %, far below experimental scatter). Reduction from 111 species:
+−23 % / −44 % / −56 %.
+
+---
+
+## 1. Application domain and validation design
+
+The parent USC-II covers H2/CO/C1–C4 hydrocarbon oxidation and pyrolysis plus
+aromatics (benzene/toluene) chemistry. Retaining the *entire* domain would cap
+compression, so the target domain is stated explicitly and tiered:
+
+* **Tier A (C0–C3):** H2, CO, CH4, C2H6, C2H4, C2H2, C3H8, C3H6 with air or
+  O2/diluent, high-temperature regime.
+* **Tier B (C1–C2):** H2, CO, CH4, C2H6, C2H4, C2H2.
+* **Tier C (C0–C1):** H2, CO, CH4.
+
+Observables (experimentally measurable, macroscopic):
+
+* **Ignition delay time (IDT)** — adiabatic constant-volume reactor
+  (shock-tube model), defined by max dT/dt. Domain: T ≈ 1000–2000 K,
+  P = 1–10 atm, φ = 0.5–2.0.
+* **Laminar burning velocity (LBV)** — freely-propagating 1D premixed flame,
+  mixture-averaged transport. Domain: Tu ≈ 298 K, P = 1–5 atm, φ = 0.6–1.5.
+
+Explicitly out of scope: C4+ fuels, aromatics/soot-precursor chemistry,
+low-temperature (<1000 K) kinetics (NTC), RCM regime, nitrogen chemistry
+(NO x). Consequences: the reduced mechanisms must not be used for those
+regimes.
+
+Two accuracy layers are kept separate throughout:
+
+1. **Reduction fidelity** — reduced vs parent on identical simulations
+   (tolerance targets: IDT within ~10–20 %, LBV within ~5 % of parent).
+2. **Experimental accuracy** — parent and reduced vs experimental targets
+   (FFCM-2/SFCPD curated set). The parent's own experimental error sets the
+   floor for what "useful accuracy" means.
+
+## 2. Experimental data sources
+
+* **FFCM-2 validation pages** (Stanford FFCM-2 / SFCPD curated targets),
+  repo `dongwd016/FFCM2_Website`, `docs/ValidationPages/*.md`.
+  612 targets downloaded for the 8 tier fuels + H2+CO syngas:
+  365 shock-tube IDT + 247 flame speed (before filtering). Each target gives
+  T, P, φ, mole-% composition, experimental nominal value, uncertainty
+  (additive `±` or multiplicative `×/÷`), the experimental diagnostic
+  (e.g. `max grad pres`, `FFCM1FLS`, `CFF`), and the underlying literature
+  reference(s). These are *consolidated* targets (multi-study nominal
+  values + uncertainty), not raw single-series points — treated as the
+  experimental evidence with that caveat noted.
+  URL: https://github.com/dongwd016/FFCM2_Website
+  Landing page: https://web.stanford.edu/group/haiwanglab/FFCM2/docs/ExperimentalData/SFCPD/
+* **SFCPD pandas database**: advertised on the FFCM-2 site but no direct
+  download link was found; the validation pages above were used instead
+  (they are derived from it). Reported as an availability limitation.
+* **ReSpecTh** (respecth.elte.hu): reachable, but the current site is a
+  JavaScript application; no static programmatic data endpoint was found
+  during this run. Not used. Reported as an availability limitation.
+* **ChemKED-database** (github.com/pr-omethe-us/ChemKED-database):
+  `github.com:443` cloning was blocked in this environment (only
+  `api.github.com` / `codeload.github.com` / `raw.githubusercontent.com`
+  were reachable); not needed after the FFCM-2 set was secured.
+* 52 HE-diluted shock-tube targets were excluded (helium is not a species
+  in the parent mechanism). 560 targets remained: 365 IDT + 195 LBV.
+
+## 3. Reduction method
+
+**Algorithm: DRGEP** (directed relation graph with error propagation;
+Lu & Law 2005; Pepiot-Desjardins & Pitsch 2008), implemented from scratch
+(`scripts/drgep.py`) for full inspectability:
+
+* State sampling: adiabatic constant-volume autoignition trajectories over
+  192 conditions per tier (8 fuels × φ{0.5,1,2} × T0{1050,1300,1600,1900 K} ×
+  P{1,10 atm}), ~20 states per trajectory spread over the temperature rise
+  (2932 states total).
+* Direct coefficients r_AB = |Σ ν_A,i ω_i δ_B,i| / max(P_A, C_A),
+  path coefficients by Dijkstra max-product search from target species
+  (fuels + O2/N2/AR/H2O/CO2), overall importance R_B = max over targets
+  and sampled states.
+* **Modification:** an activity floor — species rows with max(P_A,C_A) below
+  1e-15 × state maximum are zeroed. Without it, frozen channels
+  (rates ~1e-137) produce spurious r ≈ 1 edges that glue dead branches
+  (e.g. benzene) into the graph even for the H2/CO/CH4 tier. With the floor,
+  the GRI-Mech 3.0 benchmark is unchanged (39/53 species at ε = 0.3,
+  chemically sensible removals: NOx and C3 minors first).
+* Threshold sweep ε ∈ {0.4 … 0.015} per tier → candidate mechanisms built by
+  textual YAML subsetting (`scripts/mech_tools.py`): rate data, thermo and
+  transport are preserved verbatim; third-body efficiencies of removed
+  colliders are dropped; reactions involving removed species are dropped.
+
+**Tool check:** the DRGEP implementation was benchmarked against
+Cantera-bundled GRI-Mech 3.0 (53 species): reductions of 39–50 species over
+ε = 0.3–0.01 with chemically sensible ordering, consistent with published
+DRG/DRGEP behaviour on that mechanism.
+
+**Consistency checks:** all reduced mechanisms load in Cantera (elemental
+balance enforced), and adiabatic flame temperatures match the parent exactly
+(e.g. CH4/air φ = 1: 2230.3 K before and after reduction) since thermo is
+inherited unchanged.
+
+## 4. Reduction fidelity vs parent
+
+Figures: `results/fig_tradeoff.png` (size vs max fidelity error per tier),
+`results/fig_experiment.png` (model vs experiment scatter for parent,
+A-eps0.15, and C-eps0.15).
+
+Fidelity grids: IDT — 8 fuels × φ{0.5,1,2} × T{1000…2000 K, 7 pts} ×
+P{1,10 atm} (336/252/126 cases for tiers A/B/C); LBV — 8 fuels × φ{0.6…1.5,
+10 pts} × P{1,5 atm} (160/120/60 cases). Error metric: |ln(τ_red/τ_par)| for
+IDT (≈ relative error), |Su_red/Su_par − 1| for LBV. Reported are max and
+mean over each grid; failed/no-ignition cases counted (none outside
+no-ignition windows shared with the parent).
+
+Full sweep table: `results/fidelity_summary.csv`. Headline numbers
+(max error vs parent):
+
+| tier | eps | species | reactions | IDT max | IDT mean | LBV max | LBV mean |
+|------|-----|---------|-----------|---------|----------|---------|----------|
+| A | 0.4   | 73 | 512 | 0.210 | 0.021 | 0.138 | 0.014 |
+| A | 0.25  | 82 | 590 | 0.249 | 0.017 | 0.139 | 0.011 |
+| A | 0.15  | 86 | 613 | 0.039 | 0.003 | 0.007 | 0.001 |
+| A | 0.1   | 86 | 613 | 0.039 | 0.003 | 0.007 | 0.001 |
+| A | 0.06  | 93 | 673 | 0.044 | 0.002 | 0.007 | 0.001 |
+| A | 0.03  | 95 | 676 | 0.018 | 0.002 | 0.010 | 0.001 |
+| A | 0.015 | 99 | 711 | 0.007 | 0.000 | 0.002 | 0.000 |
+| B | 0.03  | 89 | 609 | 0.018 | 0.001 | 0.004 | 0.001 |
+| B | 0.15  | 80 | 547 | 0.435 | 0.020 | 0.028 | 0.005 |
+| C | 0.4   | 43 | 253 | 0.185 | 0.033 | 0.213 | 0.031 |
+| C | 0.25  | 49 | 290 | 0.032 | 0.003 | 0.128 | 0.013 |
+| C | 0.15  | 62 | 370 | 0.020 | 0.002 | 0.025 | 0.002 |
+| C | 0.06  | 71 | 463 | 0.007 | 0.000 | 0.002 | 0.001 |
+
+Key observations:
+
+* IDT errors concentrate at the low-T edge (1000–1250 K), where C2/C3
+  ignition is sensitive to minor channels; they collapse at tighter eps.
+* LBV errors are systematically smaller than IDT errors at the same eps —
+  autoignition-sampled DRGEP transfers well to flames.
+* Knee behaviour is non-monotone (e.g. tier B eps=0.03 has lower IDT error
+  than eps=0.06) — a known property of thresholded graph reduction.
+* The largest retained error is for C3H8 ignition at tier A eps=0.15 (3.9 %);
+  all other fuels ≤ ~1 % at that eps.
+
+## 5. Experimental validation
+
+Dataset: 560 FFCM-2/SFCPD curated targets (365 shock-tube IDT, 195 LBV)
+for the 8 tier fuels + H2+CO syngas (52 HE-diluted targets excluded — helium
+absent from the mechanism; no pure-CO targets exist in the set, CO is covered
+via syngas). Model setup per target: constant-volume adiabatic IDT with the
+matched diagnostic (pressure-based targets → max dP/dt; CO2/OH*/CH* onset
+targets → max rise rate of the corresponding species) and freely-propagating
+LBV (mixture-averaged transport) at the target's stated T, P, and mole-%
+composition.
+
+**Caveats (explicit):** (i) the model IDT diagnostics are matched per target
+(pressure-based targets → max dP/dt; CO2/OH*/CH* onset targets → max rise
+rate of the corresponding species, with ground-state CH as the CH* proxy) —
+a documented proxy for excited-state CH*; (ii) targets are consolidated
+multi-study nominals with curated uncertainty, not raw single-series points;
+(iii) a CSV-writer bug (`NoneType` join on no-ignition rows) silently
+dropped whole shards in the first runs; it was found, fixed, and all
+affected cases re-run.
+
+### Parent baseline (reference floor)
+
+| fuel | LBV mean err | LBV within uq | IDT mean |ln ratio| | IDT within uq |
+|------|-------------|---------------|------------------------|----------------|
+| C2H2 | 0.058 | 5/12 | 0.659 | 5/30 |
+| C2H4 | 0.088 | 20/33 | 0.356 | 48/78 |
+| C2H6 | 0.083 | 34/55 | 0.697 | 12/70 |
+| C3H6 | 0.123 | 12/28 | 0.491 | 28/57 |
+| C3H8 | 0.098 | 11/21 | 0.236 | 54/66 |
+| CH4  | 0.161 | 7/13 | 0.401 | 28/62 |
+| H2   | 0.175 | 10/21 | 0.370 (2 pts) | 0/2 |
+| H2+CO| 0.094 | 7/12 | — | — |
+
+IDT error by diagnostic class (parent): dP/dt 0.462, CO2-onset 0.369,
+OH-onset 0.460, CH-onset 0.485 (mean |ln ratio|) — uniform across classes,
+i.e. no diagnostic-specific bias. Parent IDT error grows at T < 1250 K
+(mean 0.62 vs 0.36–0.42 above), and is largest for C2H6/C2H2 ignition and
+rich H2 flames. This is the accuracy the parent itself delivers; a reduced
+mechanism is "useful" if it stays close to this baseline.
+
+### Candidates vs parent on the experimental set
+
+| candidate | n shared | max Δ vs parent | mean Δ | p95 Δ |
+|-----------|----------|-----------------|--------|-------|
+| A-eps0.15 (86 sp) | 560 | 0.034 | 0.002 | 0.013 |
+| C-eps0.15 (62 sp) | 110 | 0.055 | 0.007 | 0.035 |
+| C-eps0.25 (49 sp) | 110 | 0.097 | 0.014 | 0.048 |
+
+Per-fuel experimental error tables for the candidates match the parent's to
+±0.01 almost everywhere (see `results/analyze_expfinal_*.txt`); the largest
+deviations are high-pressure (73–104 atm) CH4 IDT points, outside the
+P ≤ 10 atm reduction domain. The two extreme-lean high-T H2 IDT targets
+(φ = 0.03, T > 2000 K) deviate by a factor ~1.4–1.6 for parent *and*
+candidates alike — an inherent parent behavior, not a reduction artifact.
+
+**Conclusion:** at all three compression levels, experimental accuracy is
+statistically indistinguishable from the parent. The reduction is
+experimentally "free"; the only cost is the (smaller) fidelity error.
+
+## 6. Final candidates and trade-off
+
+Three mechanisms are delivered (files under `mechanisms/`), spanning the
+domain-breadth × size × accuracy trade-off:
+
+| # | file | species | rxns | domain | IDT max err vs parent | LBV max err vs parent | Δ vs parent on exp. set |
+|---|------|---------|------|--------|-----------------------|-----------------------|--------------------------|
+| 1 | `USC2_reduced_C0C3_86sp.yaml` | 86 | 613 | C0–C3 (8 fuels) | 3.9 % | 0.7 % | max 3.4 % |
+| 2 | `USC2_reduced_C0C1_62sp.yaml` | 62 | 370 | C0–C1 (H2/CO/CH4) | 2.0 % | 2.5 % | max 5.5 % (only P>70 atm) |
+| 3 | `USC2_reduced_C0C1_49sp.yaml` | 49 | 290 | C0–C1 (H2/CO/CH4) | 3.2 % | 12.8 % | max 9.7 % |
+
+Reading the trade-off:
+
+* **Domain breadth is the dominant cost.** Compressing C0–C3 (8 fuels incl.
+  propane/propene and rich PAH-adjacent channels) bottoms out near ~86
+  species at high fidelity, while C0–C1 reaches 62. Below ~50 species the
+  flame error grows steeply (2.5 % → 12.8 %) — the classic reduction knee.
+* **Reaction network tracks species** at ~7 reactions/species (613/370/290).
+* **Accuracy loss is negligible relative to experiment** at all three levels:
+  the parent's own experimental scatter exceeds the fidelity error by an
+  order of magnitude, so all three are "experimentally equivalent" to USC-II
+  within their stated domains.
+* Examined and rejected: tier-B (C1–C2) series — dominated by candidate 1
+  (smaller and broader); tier-A eps=0.4 (73 sp) — 21 % IDT error at the C3
+  low-T edge plus 13.8 % LBV error (lean CH4, 5 atm), beyond "useful";
+  tier-C eps=0.4 (43 sp) — 21 % LBV error.
+
+## 7. Limitations and coverage gaps
+
+* **No C4+/aromatics** in the target domain — reduced mechanisms must not be
+  applied to butane+, PAH/soot, or low-T (NTC) chemistry.
+* **Pressure extrapolation:** fidelity is validated at P ≤ 10 atm; at
+  73–104 atm the 62-sp candidate deviates up to 5.5 % from the parent.
+* **Diagnostic proxies:** model IDT uses max dP/dt for pressure-diagnostic
+  targets and species rise-rates for CO2/OH*/CH* onset targets (ground-state
+  CH proxies excited-state CH*). Fidelity comparisons use max dT/dt for both
+  models — diagnostic choice cancels there.
+* **Sampling:** DRGEP states came from autoignition only (PSR was dropped
+  after CVODES failures; 1-D flame sampling judged too costly). Flame-speed
+  fidelity was nevertheless verified a posteriori on the full grids
+  (160/120/60 cases for tiers A/B/C) and found small.
+* **Experimental data** are FFCM-2/SFCPD consolidated targets, not raw
+  series; 52 HE-diluted targets excluded; no pure-CO targets in the set.
+* Thermo polynomials inherit small discontinuities from the parent (Cantera
+  warnings), unchanged by reduction.
+
+## 8. Reproducibility
+
+* Scripts: `scripts/` (drgep.py, mech_tools.py, validate.py, validate_multi.py,
+  sample_states.py, reduce_tiers.py, screen_idt.py, analyze_*.py, make_grids.py,
+  build_exp_cases.py, parse_targets.py).
+* Raw sampled states: `results/states.npz` (+ meta).
+* Screens: `results/screen_idt_*.csv`, `results/fidelity_flame_*_out.csv`.
+* Experimental targets: `data/ValidationPages/*.md` (612 files, raw download),
+  `results/exp_targets.csv`, `results/exp_cases.json`.
+* Remote compute job IDs are listed in `notes/jobs.md`.
+* Cantera 3.2.0 (pip wheel) locally and on the remote node.
+
+## 9. How retrieved knowledge changed the plan
+
+* The **FFCM-2 validation pages** (found by following the SFCPD pointer from
+  the task brief) provided a complete, citable experimental target set with
+  uncertainties and references; this replaced the planned hand-assembly of
+  literature data and fixed the experimental case list.
+* The **target fuel coverage of the FFCM-2 set** (C0–C4, no pure CO,
+  HE diluents present) directly shaped the tier fuel list and the HE
+  exclusion.
+* **USC-II literature practice** (its own validation domain: high-T, C1–C4)
+  motivated the explicit domain narrowing away from C4+/aromatics, with the
+  consequences stated in §1.
+* **DRG/DRGEP methodology papers** (Lu & Law 2005; Pepiot & Pitsch 2008)
+  fixed the reduction algorithm; the GRI-Mech 3.0 benchmark confirmed the
+  implementation; the frozen-channel failure observed here motivated the
+  activity-floor modification.
+* Unavailable resources (SFCPD direct download, ReSpecTh API, ChemKED via
+  blocked github.com) were reported rather than assumed.
+
+## 10. Stopping rationale
+
+The delivered Pareto set is stable: fidelity knee located (62/49 sp for
+C0–C1; 86 sp for C0–C3), experimental equivalence to the parent demonstrated
+at all three levels, and consistency checks pass. Further compression (e.g.
+2nd-stage reaction pruning, ~20 % fewer reactions) was scoped but deferred
+as marginal; further domain widening (C4+) contradicts the compression
+objective. Remaining budget is therefore spent on documentation rather than
+on candidates with diminishing scientific return.
+

@@ -1,0 +1,1 @@
+{"child_pid": 1638152, "cores": 2, "cpu_seconds": 24276.51, "pid": 1638030, "proc_namespace": {"mapped_proc_namespace": false, "namespace_depth": 0, "nspid": [1638030], "proc_pid": 1638030, "signal_pid": 1638030}, "reserved_seconds": 172800, "signal_identity": "verified_pidfd", "started": 1789536149.4455404, "status": "ACTIVE", "updated": 1789571349.591837}

@@ -1,0 +1,16 @@
+base: common.yaml
+profile: solo
+output_prefix: baseline-v1-deepseek-solo
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: api
+  protocol: responses
+  env_file: ../.env
+  base_url_env: DEEPSEEK_BASE_URL
+  api_key_env: DEEPSEEK_API_KEY
+model:
+  name: deepseek-flash
+  reasoning_effort: max
+  max_agents: 1

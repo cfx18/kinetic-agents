@@ -1,0 +1,275 @@
+# Autonomous reduction of USC Mech II — final report
+
+## 1. Task and chosen application domain
+
+Parent mechanism: USC Mech II (111 species, 784 reactions; `mech/parent.yaml`,
+converted from `USC_Mech_II.cti` by cti2yaml/Cantera 3.1). High-temperature
+C0–C4 hydrocarbon combustion chemistry.
+
+Chosen application domain (declared a priori, matched to the mechanism's native
+scope and to the coverage of obtainable experimental data):
+
+- Fuels: H2, CO, CH4, CH3OH, C2H6, C2H4, C2H2, C3H8, C3H6, n-C4H10, i-C4H10
+  (the FFCM-2/SFCPD "foundational fuels" set; CO covered only by blends and one
+  CO-oxidation IDT series — see limitations).
+- Observables: shock-tube ignition delay time (IDT) and laminar flame speed (Su).
+  These are the two experimentally measurable macroscopic observables required
+  by the task; species-by-species agreement is NOT required.
+- Conditions: IDT T ≈ 1050–2230 K, P ≈ 0.3–260 atm, phi ≈ 0.1–5, Ar/N2 bath;
+  Su Tu ≈ 295–470 K, P ≈ 0.5–60 atm, phi ≈ 0.03–4, air/O2-N2 oxidizer.
+- Omitted: RCM/low-T (T<1000 K) chemistry, NOx/soot/PAH observables, flame
+  structure (speciation), real-gas/high-pressure nonideal effects, blends other
+  than H2+CO. Consequences: the reduced mechanisms are NOT validated for
+  low-temperature heat release, ignition with NTC behavior, or emissions.
+
+## 2. Experimental evidence base
+
+(data/exp/MANIFEST.md; raw downloads in data/exp/raw/)
+
+- Primary source: FFCM-2 validation targets (Stanford, SFCPD-derived), the only
+  public machine-readable SFCPD content (1192 target records retrieved from the
+  FFCM-2 website source repository). IDT: 449 points/240 series over 10 fuels,
+  with per-study diagnostics and multiplicative uncertainties. Su: 272 points/
+  110 target groups over 11 fuels with +/- cm/s uncertainties and method labels.
+  52 records dropped by us (40 He-bath cases — He is not an element in USC-II;
+  12 with composition-sum typos flagged in the manifest). Source-data defects
+  (19 phi/composition mismatches, 1 mislabeled series) kept verbatim, flagged,
+  and handled by using compositions rather than phi fields.
+- ReSpecTh: anonymous metadata catalogued (2891 relevant datasets), data files
+  login-blocked (HTTP 401); no accounts created per task rules. Coverage that
+  exists but is unreachable is documented (e.g. 227 H2 IDT series).
+- CloudFlame unreachable; ChemKED ruled out (large fuels only); SFCPD pandas
+  database itself has no public download.
+- Multi-study Su values are FFCM-2 evaluated averages (labeled as such), not
+  single measurements; repeated points within a series are treated as one
+  dataset, not independent studies.
+
+## 3. Method
+
+### 3.1 Simulation workflow (built for this run)
+
+- Cantera 3.0.1, pinned identically on the local driver and the remote 64-core
+  compute node (offline wheels; verified bit-identical Su on a test case).
+- IDT: 0-D constant-volume adiabatic reactor; IDT = time of max dT/dt.
+  Diagnostic proxy note: experiments use OH*/CH*/pressure criteria; max-dT/dt is
+  a proxy (secondary max-d[OH]/dt diagnostic computed for comparison).
+- Su: 1-D freely-propagating premixed flame, mixture-averaged transport (as
+  specified by the mechanism), adaptive grid refinement; wider-domain retry on
+  non-convergence.
+- Batch runners with multiprocessing; incremental result writes (crash-safe).
+
+### 3.2 Reduction strategy
+
+Two-stage skeletal reduction, error-controlled against the parent on a
+development matrix (264 cases: 198 dilute-ignition + 66 premixed-flame points
+spanning all 11 fuels, phi 0.5–2, T 1100–1800 K, P 1–10 atm), then confirmed
+against the independent experimental set (669 cases).
+
+1. Species selection: directed relation graph (DRG) interaction coefficients
+   r_AB sampled along autoignition trajectories (0-D constant-volume, up to
+   ignition; flames excluded from sampling because preheat/post-flame states
+   inject spurious r_AB~1 edges, verified). Seeds = 11 fuels + O2; AR/N2 always
+   retained. Aggregation over states is the MEAN, not the DRGEP-max: with ~2000
+   states across 11 fuels, max-aggregation saturates ~100/111 species at r_AB=1
+   and destroys discrimination (demonstrated; mean-aggregation restores a
+   chemically sensible ranking). Species ladder (40/50/60/70/80) by maximin
+   bottleneck distance.
+2. Reaction trimming: per-reaction DRG importance J_i (mean-aggregated);
+   lowest-importance reactions removed in batches, each batch verified on the
+   development matrix.
+3. Every candidate verified to load in Cantera, conserve all elements
+   (reaction-level atom balance), and run the full development matrix.
+   No rate or thermo-chemistry parameters are ever modified: reduction is
+   purely deletion of whole species/reactions.
+
+Development-matrix acceptance: max IDT log-ratio <= 0.30 (2x), mean <= 0.05;
+max Su relative error <= 10%, mean <= 3% vs parent.
+
+### 3.3 Tool verification
+
+- DRGEP pipeline cross-checked on GRI-Mech 3.0 (built into Cantera): reduced
+  53 sp/325 rxn -> 34 sp/205 rxn for CH4 targets; IDT error 1.00x (6 cases),
+  Su error <= 0.35% (3 cases, Su never sampled — genuine extrapolation);
+  element balance passed. Implementation pitfalls found and fixed during
+  verification are documented in the notebook.
+- Flame solver spot-checked against literature-consistent values
+  (Su(CH4/air, 300 K, 1 atm) = 36.3 cm/s).
+
+## 4. Results
+
+### 4.1 Parent mechanism vs experiments (reference)
+
+Reference for "useful accuracy": the parent's own error envelope against the
+669 experimental targets (results/parent_exp.csv; per-point sim vs exp with
+diagnostics kept). All 669 cases completed (604 ignited/solved, 65 predicted
+no thermal ignition within 5x the experimental delay — concentrated in very
+lean/dilute shock-tube mixtures and the lowest-T points; constant-volume
+homogeneous idealization is weakest there, and facility pressure-rise is not
+modeled).
+
+- IDT (n=384 ignited): MAE 0.209 dex, RMSE 0.276 dex, max 1.12 dex,
+  76% of points within a factor 2 of experiment. Known parent weak spots kept
+  as reference (not reduction failures): CH3OH MAE 0.457 dex, C2H6 0.309 dex.
+- Su (n=220): MAE 4.45 cm/s, mean relative error 10.5%, max 39.4 cm/s,
+  87% of points within 20% of experiment (per-fuel: C2H2 5.8% to CH3OH 17.4%).
+- The two IDT diagnostics (max dT/dt vs max d[OH]/dt) agree with median ratio
+  1.00 (mean 0.06 dex); max-dT/dt agrees slightly better with the experimental
+  onset diagnostics (MAE 0.209 vs 0.268 dex) and is used throughout.
+
+A reduced mechanism is accepted only if its experimental metrics stay within
+this parent envelope: IDT MAE increase <= 0.03 dex and within-2x fraction
+drop <= 3 points, Su MAE increase <= 1 cm/s, and no systematic new failure
+mode (element imbalance, solver non-convergence, new no-ignition regions).
+
+### 4.2 Accuracy/complexity trade-off (development matrix)
+
+Development matrix: 264 cases (198 dilute-ignition + 66 premixed-flame points,
+11 fuels, phi 0.5-2, IDT T 1100-1800 K P 1.5-10 atm; flames Tu 300 K P 1-5
+atm), errors measured against the parent (fidelity, not experimental accuracy).
+Ladder from the mean-aggregated DRG ranking (H2O2 force-kept):
+
+| mech | species | reactions | IDT mean dex | IDT max dex | Su mean % | Su max % |
+|---|---|---|---|---|---|---|
+| cand_40 | 40 | 260 | 0.191 | 1.27 | 11.7 | 92.8 |
+| cand_50 | 50 | 365 | 0.102 | 1.27 | 5.2 | 29.8 |
+| cand_60 | 60 | 483 | 0.064 | 1.30 | 4.2 | 25.3 |
+| cand_65 | 65 | 528 | 0.023 | 0.61 | 0.95 | 4.6 |
+| cand_70 | 70 | 563 | 0.009 | 0.16 | 1.1 | 3.9 |
+| cand_80 | 80 | 614 | 0.005 | 0.07 | 0.63 | 3.2 |
+| cand_60 (no H2O2) | 60 | 469 | 0.149 | 1.90 | 3.9 | 24.1 |
+
+- The 60 -> 70 species step is the knee: residual cand_60 errors are all C2H2
+  at 1100 K (C2 oxygenate chain missing); at 70 species they collapse.
+- H2O2 evidence arm: forcing H2O2 halves the mean IDT error and cuts the max
+  by 0.6 dex (0.064 vs 0.149; 1.30 vs 1.90; removes 3 new no-ignition cases).
+- Reaction trimming of the 70-species skeleton (J_i batch removal):
+
+| mech | species | reactions | IDT mean dex | IDT max dex | Su mean % | Su max % |
+|---|---|---|---|---|---|---|
+| sk70 | 70 | 563 | 0.009 | 0.160 | 1.1 | 3.9 |
+| sk70_t0.10 | 70 | 507 | 0.009 | 0.147 | 2.1 | 5.8 |
+| sk70_t0.20 | 70 | 450 | 0.011 | 0.107 | 2.4 | 11.6 |
+| sk70_t0.30 | 70 | 394 | 0.029 | 0.387 | 6.3 | 25.4 |
+
+Reaction space trims ~10% for free; beyond that the Su tolerance (10%) breaks.
+
+### 4.3 Final candidates vs experiments
+
+All 669 experimental targets per mechanism; "fidelity" = reduced vs parent on
+those same targets (generalization: none of these conditions was used for
+reduction or candidate selection).
+
+| mech | sp/rxn | IDT MAE dex (parent 0.209) | IDT within 2x (76%) | Su MAE cm/s (4.45) | Su within 20% (87%) | fidelity IDT mean/max dex | fidelity Su mean/max % | ok/noign/fail |
+|---|---|---|---|---|---|---|---|---|
+| sk80 | 80/614 | 0.210 | 76% | 4.31 | 88% | 0.006 / 0.099 | 0.6 / 3.4 | 605/64/0 |
+| sk70 | 70/563 | 0.209 | 76% | 4.36 | 87% | 0.009 / 0.179 | 1.4 / 11.0 | 603/66/0 |
+| sk70_t0.10 | 70/507 | 0.212 | 75% | 4.60 | 86% | 0.010 / 0.179 | 1.9 / 17.0 | 604/65/0 |
+
+All three candidates stay inside the parent's experimental error envelope
+(acceptance: IDT MAE +<=0.03 dex, within-2x -<=3 points, Su MAE +<=1 cm/s):
+- sk80: IDT MAE delta +0.001 dex, within-2x delta 0, Su MAE delta -0.14 cm/s;
+  fidelity to parent 0.006 dex mean / 0.099 max. Conservative choice.
+- sk70: IDT MAE delta +0.000 dex, within-2x delta 0 points, Su MAE delta -0.09
+  cm/s. Only per-fuel change is C2H2 IDT (MAE 0.307 -> 0.326 dex), the known
+  low-T C2-chain residual. Primary choice.
+- sk70_t0.10: IDT MAE delta +0.003 dex, within-2x delta -1 point, Su MAE
+  delta +0.15 cm/s. Trimming 56 reactions is experimentally free.
+- Zero solver failures in all reduced-mechanism runs; no-ignition predictions
+  match the parent's on 64-65/65 cases (disagreements: 0-1). Differences go
+  both ways: sk80 even ignites one very-rich CH4 case (ign_CH4_20, phi=5,
+  1687 K) that the parent does not, landing closer to the experimental value.
+- Audit of the 56 reactions dropped in sk70_t0.10: dominated by radical-
+  radical and minor-channel reactions (C3/C4 radical disproportionation,
+  duplicate recombination channels); a few fast channels (C2H5+H, CH3O+H)
+  whose pathways are redundant — removal empirically invisible on all targets.
+
+Figures: results/figs/idt_parity.png, su_parity.png (sim vs exp, all 669
+targets, parent vs three finals), tradeoff.png (error vs size ladder).
+
+## 5. Discussion: trade-offs, failures, limitations
+
+### 5.1 What the trade-off looks like
+
+Compression achieved: 111 sp/784 rxn -> **70 sp/563 rxn (sk70)** and
+**70 sp/507 rxn (sk70_t0.10)**, i.e. -37% species and -28%/-35% reactions, with
+experimental behavior indistinguishable from the parent across 669 targets
+(11 fuels). On the development matrix the fidelity ladder (Table in 4.2) shows
+a sharp knee at ~70 species: errors grow gently 111->70, then explode (max Su
+error 25-93% at 40-60 species; max IDT ratio up to 20x). The knee is set by the
+C2 oxygenate chain (HCCO/CH2CO/CH3CO...) for low-T acetylene ignition and by
+C3/C4 fragmentation completeness; the 60->70 step repairs it. Reaction trimming
+beyond ~10% breaks the flame-speed tolerance first (Su is more sensitive to
+reaction removal than IDT here).
+
+Context (literature, agents/<id>/lit_context.md): published USC-II reductions
+reach 13-33 species but are all application-specific (single fuel / narrow
+domain, some with retuned rates); no general-purpose reduced USC-II exists.
+FFCM-2 covers the same C0-C4 domain at 96 sp/1054 rxn. Our 70-species pair
+therefore fills a real gap: domain-wide (11 fuels, IDT + Su), parameter-free
+(pure deletion), experimentally validated against the parent's own envelope.
+
+### 5.2 Where accuracy is lost (honest accounting)
+
+- C2H2 low-T ignition is the only systematic residual: dev max 0.16 dex at
+  1100 K; on experiments, C2H2 IDT MAE 0.307 (parent) -> 0.326 (sk70) dex and
+  one case where the parent ignites late (13x over experiment) and sk70 does
+  not ignite within 5x. This is the price of the 60->70 boundary.
+- The parent's own weak spots are inherited, not caused, by reduction:
+  CH3OH IDT MAE 0.457 dex and C2H6 0.309 dex (USC-II limitations, visible in
+  the identical parent numbers).
+- 65 cases (15%) predict no thermal ignition within 5x of the experimental
+  delay for BOTH parent and reduced mechanisms: very lean/dilute shock-tube
+  mixtures and lowest-T points, where the constant-volume homogeneous model
+  (no facility pressure-rise, no boundary-layer effects) is the limiting
+  assumption, not the chemistry.
+
+### 5.3 Limitations of this run
+
+- Coverage gaps: neat-CO experimental data unobtainable from allowed public
+  sources (only H2+CO blends + one mislabeled series); H2 IDT only 2 points;
+  ReSpecTh data files login-blocked (2891 datasets catalogued but locked);
+  40 He-bath records dropped (He not in USC-II elements). CO and H2 ignition
+  validation is therefore thinner than the C1-C4 part.
+- IDT diagnostic is a proxy (max dT/dt); experimental diagnostics vary
+  (OH*/CH*/pressure). Shown to agree within 0.06 dex on median, and the
+  reduced-vs-parent comparison is diagnostic-independent anyway.
+- SFCPD values are FFCM-2 evaluated targets (some multi-study averages), used
+  as the best available public machine-readable form; original per-point
+  uncertainty provenance not independently re-derived.
+- Development matrix capped at T >= 1100 K; nothing is claimed for RCM /
+  low-T heat-release regimes.
+- Only deletion was used (no rate retuning). Retuning a handful of rates
+  (as Lytras 2019 and Liu 2018 do) could compress further but was out of
+  scope: it would blur the fidelity/accuracy separation this run keeps.
+- Resource-limited single pass: the ladder used one ranking (mean-aggregated
+  DRG); a second reduction round with error-driven elimination might find a
+  few more removable species near the knee.
+
+### 5.4 How retrieved knowledge changed the work
+
+- ChemKED was ruled out by direct inspection (large fuels only) -> SFCPD via
+  FFCM-2 validation pages became the primary source; ReSpecTh was found
+  login-blocked and is reported as an availability result, not assumed data.
+- FFCM-2 target records carry source-data defects (phi/composition mismatches,
+  a mislabeled series, composition-sum typos) — found by the data researcher,
+  handled by simulating compositions (not phi fields) and dropping 52 records.
+- The literature scan confirmed no general-purpose reduced USC-II exists and
+  that published small mechanisms narrow the domain; this justified keeping
+  all 11 fuels in the development matrix rather than reducing per-fuel.
+- Methodologically, the broad target set broke the standard DRGEP-max
+  selector (saturation), which forced the mean-aggregation fix — the main
+  methodological finding of the run.
+
+## 6. Reproducibility
+
+- Mechanisms: mech/parent.yaml (input); finals under mech/final/.
+- Scripts: src/ (cases_dev.py, cases_exp.py, run_batch.py, run_exp.py,
+  simcore.py, drgep.py, drgep_mean.py, mechtools.py, make_candidates.py,
+  trim_rxns.py, build_mech.py, eval_reduced.py, eval_exp.py, tradeoff.py,
+  plot_results.py; remote drivers remote.sh, remote_exp.sh,
+  remote_eval_ladder.sh).
+- Data: data/exp/ (CSVs, MANIFEST.md, raw/ downloads).
+- Remote jobs: Cantera 3.0.1 offline wheels (wheels/); local venv env/venv.
+- All job inputs/outputs archived under results/ (dev, exp, ladder, trim).
+- Research notebook: decisions d1-d8, queries q1 (+ researcher's query
+  records), evidence ids.

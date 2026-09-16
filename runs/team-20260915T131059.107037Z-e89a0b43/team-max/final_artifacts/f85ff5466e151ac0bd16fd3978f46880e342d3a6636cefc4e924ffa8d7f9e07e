@@ -1,0 +1,123 @@
+# USC-II reduction: 54–69 species with ignition and flame validation
+
+## Outcome
+
+**The compact mechanism has 54 species and 392 reactions, reducing the supplied 111-species/784-reaction mechanism by 51.35% and 50.00%, respectively.** Across 108 reserved cases, its maximum absolute errors relative to the parent are **4.50% for ignition delay and 2.48% for laminar flame speed**. All reserved cases completed and met the predeclared 10% ignition / 5% flame-speed targets.
+
+These are reductions designed during this run from the supplied parent. Retained rate coefficients, thermodynamic polynomials and transport parameters were copied unchanged. No existing reduced mechanism was downloaded or presented as a new design.
+
+### Submitted mechanisms
+
+| File | Species / reactions | Species / reaction reduction | Reserved ignition: median / 95th / maximum error | Reserved flame speed: median / 95th / maximum error |
+|---|---:|---:|---:|---:|
+| [usc2_54sp.yaml](mechanisms/usc2_54sp.yaml) | **54 / 392** | **51.35% / 50.00%** | 0.126% / 2.794% / **4.498%** | 0.227% / 2.180% / **2.483%** |
+| [usc2_56sp.yaml](mechanisms/usc2_56sp.yaml) | 56 / 402 | 49.55% / 48.72% | 0.131% / 2.203% / **4.520%** | 0.101% / 1.202% / **2.155%** |
+| [usc2_69sp.yaml](mechanisms/usc2_69sp.yaml) | 69 / 461 | 37.84% / 41.20% | 0.073% / 2.454% / **4.924%** | 0.189% / 1.246% / **1.841%** |
+
+Use **54 species for the strongest compression**, or **56 species for a small additional cost and lower flame-speed error over much of the tested domain**. The 69-species version provides another measured trade-off; increasing size did not improve every observable. These are exploratory candidates, not evidence of global optimality.
+
+Each row covers **78 ignition and 30 flame cases**, with no failures, censored delays, classification mismatches, missing reference cases, or tolerance violations. Reserved ignition terminal-temperature differences were below 0.70 K; refined flame burned-temperature differences were below 0.45 K. The paired values, signed percentage errors and symmetric logarithmic/factor errors are in [final_analysis/paired.csv](outputs/final_analysis/paired.csv).
+
+![Accuracy versus mechanism size](figures/accuracy_complexity.png)
+
+## Tested domain and acceptance criteria
+
+The nine training fuel classes were H2, equimolar H2/CO, CH4, C2H2, C2H4, C2H6, C3H6, C3H8 and CH3OH. This spans hydrogen, syngas, saturated and unsaturated hydrocarbons, and an oxygenated fuel. Air was O2:N2 = 1:3.76 by moles.
+
+- **Training, 99 cases:** 81 adiabatic constant-volume ignition cases using a Latin-square pairing of 1000/1250/1600 K, 1/10/30 atm and equivalence ratio 0.5/1/2; 18 freely propagating flames at 300 K, 1 atm and equivalence ratio 0.7/1.4.
+- **Reserved validation, 108 cases:** neat-fuel ignition at 1100/1450 K, 3/20 atm and equivalence ratio 0.7/1.3; flames at `(phi, Tu, p) = (0.6, 300 K, 1 atm), (1, 300 K, 1 atm), (1.6, 500 K, 5 atm)`.
+- **Compositional holdouts:** CH4/H2 = 70/30, CH4/C2H6/C3H8 = 85/10/5, and CO/H2/CO2 = 50/40/10 by fuel-stream moles, with additional ignition and flame conditions. The last mixture has a historical case ID containing `wet_syngas`; its actual composition contains CO2 and **no steam**.
+
+The reserved conditions were archived before candidate selection. Candidate bytes were frozen before their reserved-set results were read. Later refinement changed only the numerical flame grids. Exact conditions are in [train_cases.json](inputs/train_cases.json) and [validation_cases.json](inputs/validation_cases.json).
+
+The predeclared exploratory targets were absolute relative error no greater than **10% in ignition delay, 5% in flame speed and 30 K in terminal/burned temperature**, relative to the parent. These tolerances make a substantial compression useful for macroscopic calculations while exposing large pathway errors; they are not experimental uncertainty estimates. No species-by-species agreement was required.
+
+Ignition delay is the time at maximum analytic temperature-rise rate in a closed adiabatic constant-volume reactor. A 400 K rise is a secondary ignition diagnostic. Flames are ideal, adiabatic, planar and freely propagating, with mixture-averaged transport and Soret diffusion disabled in the main suite. Full definitions and equations are in [METHODS.md](METHODS.md).
+
+## How the reduction was obtained
+
+The workflow computes a DRGEP-style directed species-dependency graph from parent ignition and flame trajectories. Its direct coefficient is the absolute net contribution of reactions involving species B to species A, divided by the larger of A's total production and consumption rates. Maximum-product paths propagate influence from fuel, oxidizer, major products and selected radicals. Scores are maximized over the training states; protected fuels, bath gases and the H/O/CO core remain.
+
+All parent reactions whose participants remain are retained, including complete surviving duplicate groups and pressure-dependent parameters. Selected graph thresholds were tested against both ignition and flame observables, followed by single-species restoration and deletion screens on 24 training ignition sentinel cases. Combined changes were checked again on all 99 training cases.
+
+### Quantitative unsuccessful attempts and improvements
+
+| Candidate | Species / reactions | Maximum training ignition error | Maximum training flame-speed error |
+|---|---:|---:|---:|
+| Simple C0–C3 carbon-count cutoff | 55 / 395 | **166.75%** | 2.62% |
+| Graph threshold 0.2 | 81 / 571 | 10.33% | 1.23% |
+| Graph threshold 0.4 | 69 / 477 | 16.41% | 3.95% |
+| Graph threshold 0.5 | 62 / 425 | 49.28% | 3.71% |
+| Graph threshold 0.6 | 56 / 371 | 53.26% | 7.93% |
+| Four species restored | 66 / 448 | 9.27% | 3.76% |
+| Final compact subset | 54 / 392 | **9.35%** | **3.20%** |
+| Final 56-species subset | 56 / 402 | **9.34%** | **0.82%** |
+
+The carbon-count cutoff passed all training flame-speed targets but failed 19 of 81 ignition targets. This is a concrete reason to validate both macroscopic observables.
+
+Single-species tests identified useful restorations: H2C4O reduced the worst low-temperature acetylene error from 49.28% to 16.00%; HCCOH also strongly improved acetylene; C4H10 reduced the selected rich-ethane error from −10.36% to −1.20%; CH3CHCH improved high-pressure propene ignition. Combining these four restorations produced the 66-species candidate. Twelve individually weak species were then removed and the full training suite repeated. The 56-species version restores C and C2O to the compact subset.
+
+The compact mechanism retains six C4 species—C4H2, iC4H3, C4H6, C4H81, C4H10 and H2C4O—because they affect small-fuel chemistry. It is not a simple carbon-number truncation. The exact recipes and archived rankings are implemented in [rebuild_candidates.py](scripts/rebuild_candidates.py).
+
+## Reserved results and numerical checks
+
+The worst compact ignition case was propane/air at 1450 K, 20 atm and phi 1.3: the parent predicted **22.874 microseconds**, and the 54-species mechanism **21.846 microseconds**. The worst refined flame case was propene/air at 500 K, 5 atm and phi 1.6: the parent predicted **0.22380 m/s**, and the compact mechanism **0.21825 m/s**.
+
+Numerical checks included:
+
+- Tightening ignition relative/absolute tolerances from `1e-8/1e-16` to `1e-10/1e-19` changed the six checked ignition delays per mechanism by at most **0.0178%**.
+- The first flame refinement changed absolute speeds by up to **2.823%**, so all 30 reserved flames were recomputed with refinement slope/curve `0.025/0.05`. These are the main results in the table above. A further halving to `0.0125/0.025` on seven conditions per mechanism changed speed by at most **0.891%**. Every refinement solve succeeded; the other 23 cases were not individually checked at that last level.
+- Doubling domain width in the checked H2 and CH4 flames changed speed by less than **0.001%**.
+- Switching both transport formulation and thermal diffusion to multicomponent plus Soret changed the checked parent lean-H2 speed by **−9.73%** and CH4 by **−1.13%**. Under the same changed model, compact-versus-parent errors were about **0.0021% for H2 and 0.60% for CH4**. Transport assumptions therefore remain relevant to absolute flame predictions.
+- An independent local repeat of all 99 parent training cases differed from the remote run by at most **0.1152% in peak ignition timing** and approximately `1.6e-11` in relative flame speed.
+
+See [final_grid_convergence.json](outputs/final_grid_convergence.json), [check_summary.json](outputs/check_summary.json) and the [error distribution figure](figures/holdout_error_distribution.png).
+
+## Conservation, thermodynamics and inherited limitations
+
+The [mechanism audit](outputs/final_mechanism_audit.json) found zero elemental stoichiometric residual, identical retained NASA coefficients and transport data, complete surviving duplicate groups, unchanged reversibility/duplicate flags, and retention of every nondefault collider species. No collider efficiency entry was lost. Sampled forward and reverse rate differences were below **1.36e-14** on identical common-species mixtures. Sampled species heat capacities remained positive through 4000 K; temperatures outside fit ranges were explicitly labeled extrapolated probes.
+
+Saved reserved ignition trajectories showed elemental mass-fraction drift below `2.7e-11` and normalized internal-energy drift below `2.0e-7`. Refined flame inlet/outlet enthalpy mismatch was below **0.20% of the chemical heat-release scale**. Tiny negative raw mass fractions, down to approximately `−1.4e-11`, are numerical roundoff/solver artifacts and are retained in the raw profiles.
+
+The supplied parent has NASA continuity warnings and a common nominal thermodynamic range of **300–2000 K**. The 54- and 56-species files load without those continuity warnings because the affected species were removed; their common nominal range is **300–3000 K**. The 69-species file inherits seven warnings and the 2000 K common upper bound. Coefficients were not refitted. Reserved ignition temperatures reached approximately **3622 K**, so high-temperature thermodynamic extrapolation remains a limitation even in the compact mechanisms. Mechanical consistency and parent agreement do not independently validate that extrapolation.
+
+## Comparisons with public experimental evidence
+
+### Shock-tube ignition spot checks
+
+Four tabulated rows were read from the publicly downloadable [Stanford Fundamental Kinetics Database Utilizing Shock Tube Measurements](https://purl.stanford.edu/kb621cw6967), with source citations and definitions checked against its DOCX tables. These conditions and observations were not used to select or tune the mechanisms.
+
+All delays below are in microseconds; mixtures use argon as the balance gas.
+
+| Fuel and initial condition | Published observation | Parent prediction | 54 species | 56 species | 69 species |
+|---|---:|---:|---:|---:|---:|
+| H2, 1684 K, 33 atm; 0.5% H2 / 0.25% O2 | 12 | 13.255 | 13.262 | 13.243 | 13.248 |
+| CH4, 1203 K, 50.5 atm; 3.8% CH4 / 19.2% O2 | 694 | 950.205 | 950.195 | 950.195 | 950.202 |
+| C2H4, 1541 K, 1.10 atm; 2% C2H4 / 6% O2 | 66 | 72.356 | 72.362 | 72.253 | 72.278 |
+| C3H8, 1376 K, 1.19 atm; 4% C3H8 / 20% O2 | 357 | 264.469 | 259.936 | 259.910 | 258.512 |
+
+H2 uses maximum OH concentration growth rate. CH4 uses a pressure-rise tangent extrapolated to the initial pressure, approximating the stated experimental definition. The C2H4 and C3H8 observations are **CH-star emission peaks**; USC-II does not contain CH-star, so the reported predictions use maximum temperature-rise rate as an explicitly imperfect timing proxy. The dilute H2 case uses a 10 K ignition-detection rise.
+
+The parent itself differs from these observations by approximately 10–37%; the skeletal models largely retain that behavior. Four rows, two involving diagnostic proxies and idealized shock-tube assumptions, do not establish comprehensive experimental accuracy. Formal uncertainty bounds were not extracted for these selected rows. Primary source citations embedded in the database include Petersen and coauthors (1995/1999) and Horning/Davidson/Hanson (2001/2002). The original documents, extraction reports and [exact case file](inputs/experimental_cases.json) are retained.
+
+### Flame-related literature check
+
+An open copy of [Porowski et al., Energies 17, 2855 (2024), DOI 10.3390/en17122855](https://doi.org/10.3390/en17122855) provides pressure measurements from a 20 L closed spherical vessel at 1 bar. Its Table 3 uses a Bradley–Mitcheson model to infer burning velocity. Table 5 separately reports Cantera/GRI predictions. These are distinct evidence types:
+
+| Unburned temperature | Pressure-derived velocity, Table 3 | Published GRI simulation, Table 5 | Our parent planar flame | Our 54-species planar flame | Our 56-species planar flame |
+|---|---:|---:|---:|---:|---:|
+| 298.15 K | 0.23480 | 0.37683 | 0.36102 | 0.36319 | 0.36097 |
+| 323.15 K | 0.27334 | 0.42836 | 0.40963 | 0.41219 | 0.40958 |
+| 348.15 K | 0.30947 | 0.48379 | 0.46173 | 0.46477 | 0.46174 |
+
+Units are m/s; all mixtures are stoichiometric methane/air. Our planar predictions do **not reproduce the lower pressure-derived values**. The apparatus, heat loss and inference model differ, and no formal Table 3 velocity uncertainty was found. These rows were retained as a secondary comparison, without tuning or treating the published GRI calculations as experiments. Direct, canonical experimental flame-speed validation remains incomplete. The 298.15 K comparison also lies slightly below the mechanism's common 300 K lower fit bound.
+
+## Scope, reproducibility and stopping
+
+The supported claim is useful parent-relative ignition and flame accuracy for the specified small-fuel conditions and blends. C4 fuel feeds, aromatic fuel feeds, soot/precursor predictions, NOx, species-profile fidelity, cool-flame/NTC behavior, wall heat loss, stretched/cellular flames and broad extrapolation beyond the tested domain were not validated.
+
+[REPRODUCE.md](REPRODUCE.md) gives offline installation, rebuilding and rerun commands, with an artifact map. The workspace retains the supplied parent, offline software wheels, source URLs/documents, frozen inputs, raw numerical outputs, unsuccessful candidates, solver logs, code-review findings and candidate hashes. One aggregate threshold-sweep trajectory archive was not returned by the service; all its directly computed per-case macroscopic JSON results and solver log were preserved. No missing archive is claimed as available.
+
+The team used a principal numerical workflow plus bounded literature and independent code/chemistry audits. All researcher deliverables were reviewed. Thirteen remote submissions are recorded: one rejected input-path attempt, one successful infrastructure probe, and eleven settled scientific batches. Remote allocation charges totaled **76,544 core-seconds** (about 21.26 allocated core-hours, including idle allocation); additional local work is not included in that figure. This is not a controlled runtime-speedup benchmark.
+
+Search stopped after full training and reserved validation, structural checks, external spot checks, and numerical refinement met the stated exploratory goals. Further optimization or wider experimental validation could change the trade-off. No global minimality or universal accuracy is claimed.

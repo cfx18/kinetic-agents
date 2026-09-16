@@ -1,0 +1,30 @@
+version: 1
+account:
+  auth_home: /root/.codex-experiment
+resources:
+  search_cpu_hours: 512
+  wall_hours: 24
+  evaluation_cpu_hours: 64
+inputs:
+  task: ../tasks/usc_ii
+  accepted: ../local/accepted.json
+  evaluation_base: ../local/evaluation_base.json
+output:
+  root: ../runs
+  prefix: solo
+transcript:
+  enabled: true
+deployment:
+  search_root: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/kinetic-agents
+  container_image: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/solo-team-max-20260914-v1/runtime/python.sif
+  evaluation_python: /public3/home/sca2070/WORK/Caifeixue/AgenticRL_research_runs/pilot-env-20260912-b/venv/bin/python
+profile: solo
+model:
+  name: gpt-6-astra
+  reasoning_effort: xhigh
+  max_agents: 1
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: subscription

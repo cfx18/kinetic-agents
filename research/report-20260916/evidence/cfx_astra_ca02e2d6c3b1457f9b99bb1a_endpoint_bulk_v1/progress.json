@@ -1,0 +1,14 @@
+{
+  "at": 1789485444.1500769,
+  "expected": 1830,
+  "job_id": "7950590",
+  "last_completion": 1789485444.150069,
+  "recorded": 1830,
+  "running": 0,
+  "settled_case_cpu_seconds": 18915.433506999972,
+  "status": "CASES_FINISHED",
+  "statuses": {
+    "input_incompatible": 171,
+    "success": 1659
+  }
+}

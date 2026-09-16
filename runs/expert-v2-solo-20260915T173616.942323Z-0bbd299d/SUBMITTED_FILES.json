@@ -1,0 +1,26 @@
+[
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/final/uscII-93s-553r.yaml",
+    "sha256": "66d77dac9fbdc47c6ad6cd25753b1943efb1341ec94366c7a4ebe54c367d0517",
+    "distributed_path": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/final_artifacts/66d77dac9fbdc47c6ad6cd25753b1943efb1341ec94366c7a4ebe54c367d0517"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/final/uscII-88s-475r.yaml",
+    "sha256": "ddb2cc5e6d0c7b6f2c076217a0f9c3b9c895c1cfa1556a78a5748df104278aa8",
+    "distributed_path": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/final_artifacts/ddb2cc5e6d0c7b6f2c076217a0f9c3b9c895c1cfa1556a78a5748df104278aa8"
+  },
+  {
+    "role": "mechanism",
+    "original_path": "mechanisms/final/uscII-74s-433r.yaml",
+    "sha256": "281a90369b734f47810248c1c8d5ed85fd06f759056eb97dc4c8b1a960cb39dc",
+    "distributed_path": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/final_artifacts/281a90369b734f47810248c1c8d5ed85fd06f759056eb97dc4c8b1a960cb39dc"
+  },
+  {
+    "role": "report",
+    "original_path": "REPORT.md",
+    "sha256": "b4092332ce3de3f9272f4057ae1c86a7fae765911b4a311ac582399804b467e3",
+    "distributed_path": "runs/expert-v2-solo-20260915T173616.942323Z-0bbd299d/solo-max/final_artifacts/b4092332ce3de3f9272f4057ae1c86a7fae765911b4a311ac582399804b467e3"
+  }
+]
