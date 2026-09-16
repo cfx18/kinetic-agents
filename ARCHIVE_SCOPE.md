@@ -47,6 +47,7 @@ model superiority.
 relative to that index, not independently authenticate the experiment's history.
 Do not feed this answer-containing archive into a new clean search Agent.
 
-Private storage is not public redistribution clearance. MIT covers original code
+Public visibility was authorized by the owner on 2026-09-17; it does not establish
+third-party redistribution clearance. MIT covers original code
 only; see [data rights](research/DATA_RIGHTS.md). Publication does not authorize a
 new model request, cluster job or purchase.

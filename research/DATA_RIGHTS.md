@@ -1,6 +1,6 @@
 # Data and third-party rights boundary
 
-The repository's MIT file applies only to original project code. This private
+The repository's MIT file applies only to original project code. This
 research archive does not apply MIT to all nested content or establish a new
 redistribution license for scientific data.
 
@@ -13,9 +13,11 @@ redistribution license for scientific data.
 | Downloaded software inside research payloads | Retain upstream notices and version evidence; native CLIs and host runtime images are not supplied as runnable installations. |
 | Project reports and figures | Dated work products with explicit evidence/claim boundaries; citations do not relicense the underlying datasets. |
 
-The user selected Private archival storage. Public disclosure, collaborators'
-access or relicensing requires a separate review. Ambiguous upstream terms are
-not labelled as cleared merely because the archive is private.
+The archive was initially Private. On 2026-09-17 the owner explicitly authorized
+making the entire repository Public, including its existing contents and history.
+This visibility decision does not establish upstream redistribution permission.
+Ambiguous upstream terms remain unresolved; no new third-party license or rights
+clearance is claimed by this update.
 
 Account stores, credentials and unrelated projects are excluded. Refer to the
 export provenance/exclusion records for actual file handling. Secret scans are

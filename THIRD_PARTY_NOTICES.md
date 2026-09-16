@@ -16,7 +16,7 @@ adapters and a historical provenance pin. Their presence is not a claim that
 external mechanisms or observations have redistribution clearance.
 
 USC-II, the historically exposed 610-case observation pool, candidate mechanisms
-and previously collected research materials are included in this private
+and previously collected research materials are included in this
 research archive under the user's selected scope. Source terms still apply;
 this statement is not a legal clearance for public redistribution. Attribution,
 source URLs and existing source notices must be preserved. See

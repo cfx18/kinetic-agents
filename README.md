@@ -3,7 +3,7 @@
 Observable research runs on native agent harnesses, with shared task inputs,
 single-agent or team execution, and independent scientific evaluation.
 
-**Status: research prototype / private results-only archive.** This is the runner used
+**Status: research prototype / public results-only archive.** This is the runner used
 in a chemical-kinetics study, not a new model reasoning loop and not a proven
 recursive self-improvement algorithm. The current scientific contract is pinned
 to USC-II. Remote execution still contains site-specific Slurm restrictions;
@@ -64,9 +64,9 @@ Additional query/input task packages are listed in [tasks](tasks/README.md).
 They have **no established ground truth (GT)** and no accompanying grader; they
 are not completed experiments or validated training/evaluation datasets.
 
-The repository is Private. Its research data are not a new MIT grant for
-third-party mechanisms, experiments, papers or downloaded software. Do not make
-it Public without a separate data-rights and privacy review. Do not mount this
+The owner authorized Public visibility on 2026-09-17. This does not establish
+third-party redistribution clearance or apply MIT to mechanisms, experiments,
+papers or downloaded software; see [data rights](research/DATA_RIGHTS.md). Do not mount this
 archive, its prior runs or evaluator answers into a new search agent's workspace.
 
 ## Install and run offline checks
