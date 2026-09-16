@@ -1,0 +1,12 @@
+base: usc_ii_t03_wide-common.yaml
+profile: solo
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: subscription
+model:
+  name: gpt-6-astra
+  reasoning_effort: xhigh
+  max_agents: 1
+output_prefix: usc_ii_t03_wide-solo

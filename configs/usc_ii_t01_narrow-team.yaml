@@ -1,0 +1,14 @@
+base: usc_ii_t01_narrow-common.yaml
+profile: team
+harness:
+  name: codex
+  executable: codex
+backend:
+  auth: subscription
+model:
+  name: gpt-6-astra
+  reasoning_effort: xhigh
+  max_agents: 3
+  researcher_model: gpt-5.5
+  researcher_effort: high
+output_prefix: usc_ii_t01_narrow-team

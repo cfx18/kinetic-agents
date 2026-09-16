@@ -53,11 +53,16 @@ tests/                      Synthetic regression and explicit opt-in acceptance
 docs/                       Architecture, deployment and release boundaries
 data/benchmark/             Historically exposed evaluator inputs and provenance
 research/                   Dated reports, observations, figures and analysis
+tasks/usc_ii_t*/            20 task packages with paired run configs; no GT/grader
 runs/                       Per-run navigation, summaries, submitted artifacts
 results/                    Run index and result-package file manifest
 scripts/verify_results_archive.py  Offline byte/endpoint consistency checks
 local/                      Host-only credentials/qualification (not distributed)
 ```
+
+Additional query/input task packages are listed in [tasks](tasks/README.md).
+They have **no established ground truth (GT)** and no accompanying grader; they
+are not completed experiments or validated training/evaluation datasets.
 
 The repository is Private. Its research data are not a new MIT grant for
 third-party mechanisms, experiments, papers or downloaded software. Do not make

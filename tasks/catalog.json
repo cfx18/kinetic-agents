@@ -1,0 +1,354 @@
+{
+  "version": 1,
+  "status": "configured_not_launch_qualified",
+  "ground_truth": {
+    "status": "absent",
+    "path": null
+  },
+  "grader": {
+    "status": "not_implemented",
+    "path": null
+  },
+  "tasks": [
+    {
+      "id": "usc_ii_t01_wide",
+      "family": "T01",
+      "title_zh": "交付可用的简化机理",
+      "scope": "wide",
+      "task": "usc_ii_t01_wide/TASK.md",
+      "parent": "usc_ii_t01_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t01_wide-solo.yaml",
+        "team": "../configs/usc_ii_t01_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent mechanism + scope. No existing candidate, prescribed algorithm, or case pool.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t01_narrow",
+      "family": "T01",
+      "title_zh": "交付可用的简化机理",
+      "scope": "narrow",
+      "task": "usc_ii_t01_narrow/TASK.md",
+      "parent": "usc_ii_t01_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t01_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t01_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent mechanism + scope. No existing candidate, prescribed algorithm, or case pool.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t02_wide",
+      "family": "T02",
+      "title_zh": "研发更好的优化方法，而不只是交付机理",
+      "scope": "wide",
+      "task": "usc_ii_t02_wide/TASK.md",
+      "parent": "usc_ii_t02_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t02_wide-solo.yaml",
+        "team": "../configs/usc_ii_t02_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + frozen, independently checked baseline implementation and its interface. Baseline not yet staged for this catalog; these two tasks remain blocked for execution until it is supplied. Do not designate an unaudited historical custom DRGEP implementation as trusted.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t02_narrow",
+      "family": "T02",
+      "title_zh": "研发更好的优化方法，而不只是交付机理",
+      "scope": "narrow",
+      "task": "usc_ii_t02_narrow/TASK.md",
+      "parent": "usc_ii_t02_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t02_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t02_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + frozen, independently checked baseline implementation and its interface. Baseline not yet staged for this catalog; these two tasks remain blocked for execution until it is supplied. Do not designate an unaudited historical custom DRGEP implementation as trusted.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t03_wide",
+      "family": "T03",
+      "title_zh": "自主构建有代表性的验证方案",
+      "scope": "wide",
+      "task": "usc_ii_t03_wide/TASK.md",
+      "parent": "usc_ii_t03_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t03_wide-solo.yaml",
+        "team": "../configs/usc_ii_t03_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope; public resource discovery permitted. No prescribed website or fixed case count. Deliver case specifications and evidence, not a grader.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t03_narrow",
+      "family": "T03",
+      "title_zh": "自主构建有代表性的验证方案",
+      "scope": "narrow",
+      "task": "usc_ii_t03_narrow/TASK.md",
+      "parent": "usc_ii_t03_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t03_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t03_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope; public resource discovery permitted. No prescribed website or fixed case count. Deliver case specifications and evidence, not a grader.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t04_wide",
+      "family": "T04",
+      "title_zh": "修复已有机理的跨工况损伤",
+      "scope": "wide",
+      "task": "usc_ii_t04_wide/TASK.md",
+      "parent": "usc_ii_t04_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t04_wide-solo.yaml",
+        "team": "../configs/usc_ii_t04_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + one locked reduced candidate + selected development observations/predictions and raw diagnostics. Candidate must actually exhibit a documented discrepancy in the assigned domain. No known successful repair or later endpoint results. Specific source bundle pending selection.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t04_narrow",
+      "family": "T04",
+      "title_zh": "修复已有机理的跨工况损伤",
+      "scope": "narrow",
+      "task": "usc_ii_t04_narrow/TASK.md",
+      "parent": "usc_ii_t04_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t04_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t04_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + one locked reduced candidate + selected development observations/predictions and raw diagnostics. Candidate must actually exhibit a documented discrepancy in the assigned domain. No known successful repair or later endpoint results. Specific source bundle pending selection.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t05_wide",
+      "family": "T05",
+      "title_zh": "自适应选择下一批计算",
+      "scope": "wide",
+      "task": "usc_ii_t05_wide/TASK.md",
+      "parent": "usc_ii_t05_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t05_wide-solo.yaml",
+        "team": "../configs/usc_ii_t05_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + same-stage candidate files + partial development results + actual query/compute interface and runtime budget. Unqueried results not exposed. No required Bayesian/LLM method and no score-estimation grader requested. Bundle/interface pending execution preparation.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t05_narrow",
+      "family": "T05",
+      "title_zh": "自适应选择下一批计算",
+      "scope": "narrow",
+      "task": "usc_ii_t05_narrow/TASK.md",
+      "parent": "usc_ii_t05_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t05_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t05_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + same-stage candidate files + partial development results + actual query/compute interface and runtime budget. Unqueried results not exposed. No required Bayesian/LLM method and no score-estimation grader requested. Bundle/interface pending execution preparation.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t06_wide",
+      "family": "T06",
+      "title_zh": "从实验资料建立物理一致的可执行算例",
+      "scope": "wide",
+      "task": "usc_ii_t06_wide/TASK.md",
+      "parent": "usc_ii_t06_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t06_wide-solo.yaml",
+        "team": "../configs/usc_ii_t06_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + selected original-source excerpts/data files with provenance, not only normalized rows. Conflicting records may be naturally occurring but must be labeled as such in the private source manifest; do not invent an error and call it historical. Source bundle pending selection and usage-right checks.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t06_narrow",
+      "family": "T06",
+      "title_zh": "从实验资料建立物理一致的可执行算例",
+      "scope": "narrow",
+      "task": "usc_ii_t06_narrow/TASK.md",
+      "parent": "usc_ii_t06_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t06_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t06_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + selected original-source excerpts/data files with provenance, not only normalized rows. Conflicting records may be naturally occurring but must be labeled as such in the private source manifest; do not invent an error and call it historical. Source bundle pending selection and usage-right checks.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t07_wide",
+      "family": "T07",
+      "title_zh": "解释“为什么这个候选不好”，并用干预检验",
+      "scope": "wide",
+      "task": "usc_ii_t07_wide/TASK.md",
+      "parent": "usc_ii_t07_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t07_wide-solo.yaml",
+        "team": "../configs/usc_ii_t07_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + candidate + raw successful and unsuccessful development solves, numerical settings, and experimental metadata. No prewritten causal verdict. Difference from T04: principal deliverable is supported diagnosis; compression improvement is not required.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t07_narrow",
+      "family": "T07",
+      "title_zh": "解释“为什么这个候选不好”，并用干预检验",
+      "scope": "narrow",
+      "task": "usc_ii_t07_narrow/TASK.md",
+      "parent": "usc_ii_t07_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t07_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t07_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + candidate + raw successful and unsuccessful development solves, numerical settings, and experimental metadata. No prewritten causal verdict. Difference from T04: principal deliverable is supported diagnosis; compression improvement is not required.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t08_wide",
+      "family": "T08",
+      "title_zh": "检验机理能否迁移到新应用工况",
+      "scope": "wide",
+      "task": "usc_ii_t08_wide/TASK.md",
+      "parent": "usc_ii_t08_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t08_wide-solo.yaml",
+        "team": "../configs/usc_ii_t08_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Locked candidate + parent + original validated scope + requested target scope. Source and target must differ concretely in fuel/pressure/temperature/dilution/observable, not only in wording. T08-N requires specific disjoint or shifted envelopes at assembly; no claim these constitute pristine unseen data. Bundle pending selection.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t08_narrow",
+      "family": "T08",
+      "title_zh": "检验机理能否迁移到新应用工况",
+      "scope": "narrow",
+      "task": "usc_ii_t08_narrow/TASK.md",
+      "parent": "usc_ii_t08_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t08_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t08_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Locked candidate + parent + original validated scope + requested target scope. Source and target must differ concretely in fuel/pressure/temperature/dilution/observable, not only in wording. T08-N requires specific disjoint or shifted envelopes at assembly; no claim these constitute pristine unseen data. Bundle pending selection.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t09_wide",
+      "family": "T09",
+      "title_zh": "从中途状态恢复研究，并修正过时结论",
+      "scope": "wide",
+      "task": "usc_ii_t09_wide/TASK.md",
+      "parent": "usc_ii_t09_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t09_wide-solo.yaml",
+        "team": "../configs/usc_ii_t09_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + checkpoint candidates/code + timestamped public I/O and notes available at that cutoff + evidence index. Later results excluded. Incomplete historical checkpoint must be labeled reconstructed, not exact replay. No private chain-of-thought required or fabricated. Bundle pending recoverability audit.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t09_narrow",
+      "family": "T09",
+      "title_zh": "从中途状态恢复研究，并修正过时结论",
+      "scope": "narrow",
+      "task": "usc_ii_t09_narrow/TASK.md",
+      "parent": "usc_ii_t09_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t09_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t09_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + checkpoint candidates/code + timestamped public I/O and notes available at that cutoff + evidence index. Later results excluded. Incomplete historical checkpoint must be labeled reconstructed, not exact replay. No private chain-of-thought required or fabricated. Bundle pending recoverability audit.",
+      "materials_status": "additional_materials_pending",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t10_wide",
+      "family": "T10",
+      "title_zh": "组织可复用的科研流程、技能和证据管理",
+      "scope": "wide",
+      "task": "usc_ii_t10_wide/TASK.md",
+      "parent": "usc_ii_t10_wide/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t10_wide-solo.yaml",
+        "team": "../configs/usc_ii_t10_wide-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + workspace and tool capability descriptions. No inherited successful skill library. Delegation is permitted only if the chosen execution condition provides it; neither query mandates a team or equates writing a skill with proven self-improvement.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    },
+    {
+      "id": "usc_ii_t10_narrow",
+      "family": "T10",
+      "title_zh": "组织可复用的科研流程、技能和证据管理",
+      "scope": "narrow",
+      "task": "usc_ii_t10_narrow/TASK.md",
+      "parent": "usc_ii_t10_narrow/parent.yaml",
+      "configs": {
+        "solo": "../configs/usc_ii_t10_narrow-solo.yaml",
+        "team": "../configs/usc_ii_t10_narrow-team.yaml"
+      },
+      "ground_truth": null,
+      "grader": null,
+      "input_requirements": "Parent + scope + workspace and tool capability descriptions. No inherited successful skill library. Delegation is permitted only if the chosen execution condition provides it; neither query mandates a team or equates writing a skill with proven self-improvement.",
+      "materials_status": "parent_present",
+      "launch_status": "blocked_pending_task_and_no_grader_runtime_qualification"
+    }
+  ]
+}
